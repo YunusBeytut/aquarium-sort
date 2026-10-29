@@ -93,8 +93,8 @@ const HelperButton = memo(function HelperButton({
           {label}
         </Text>
         {badge !== undefined && (
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>{badge}</Text>
+          <View style={[styles.badge, badge === 0 && styles.badgeEmpty]}>
+            <Text style={styles.badgeText}>{badge > 0 ? badge : '+'}</Text>
           </View>
         )}
       </Animated.View>
@@ -107,18 +107,20 @@ const HelperButton = memo(function HelperButton({
 type Props = {
   undoLeft: number;
   extraJarLeft: number;
+  hintLeft: number;
   canUndo: boolean;
   onUndo: () => void;
   onExtraJar: () => void;
   onHint: () => void;
   onRestart: () => void;
-  // i18n'den verilebilir. Verilmezse Türkçe varsayılanlar kullanılır.
+  // i18n'den verilir. Verilmezse İngilizce varsayılanlar kullanılır.
   labels?: { undo?: string; extraJar?: string; hint?: string; restart?: string };
 };
 
 export function HelperBar({
   undoLeft,
   extraJarLeft,
+  hintLeft,
   canUndo,
   onUndo,
   onExtraJar,
@@ -129,35 +131,35 @@ export function HelperBar({
   return (
     <View style={styles.bar}>
       <HelperButton
-        label={labels?.undo ?? 'Geri al'}
+        label={labels?.undo ?? 'Undo'}
         icon={ICONS.undo}
         face="#58c8f2"
         lip="#2584b0"
         edge="#9be3fb"
         badge={undoLeft}
-        disabled={undoLeft <= 0 || !canUndo}
+        disabled={!canUndo}
         onPress={onUndo}
       />
       <HelperButton
-        label={labels?.extraJar ?? 'Kavanoz'}
+        label={labels?.extraJar ?? 'Jar'}
         icon={ICONS.jar}
         face="#5fd6a8"
         lip="#2a9a72"
         edge="#a2ecd0"
         badge={extraJarLeft}
-        disabled={extraJarLeft <= 0}
         onPress={onExtraJar}
       />
       <HelperButton
-        label={labels?.hint ?? 'İpucu'}
+        label={labels?.hint ?? 'Hint'}
         icon={ICONS.hint}
         face="#ffd54f"
         lip="#c99a14"
         edge="#ffe69a"
+        badge={hintLeft}
         onPress={onHint}
       />
       <HelperButton
-        label={labels?.restart ?? 'Yeniden'}
+        label={labels?.restart ?? 'Restart'}
         icon={ICONS.restart}
         face="#9fb8d8"
         lip="#5d7ba3"
@@ -217,6 +219,10 @@ const styles = StyleSheet.create({
     borderColor: '#ffffff',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  // Hak bitti: dokununca video/inci penceresi açılır.
+  badgeEmpty: {
+    backgroundColor: '#2e9e6b',
   },
   badgeText: {
     fontSize: 12,

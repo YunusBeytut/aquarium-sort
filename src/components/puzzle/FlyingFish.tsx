@@ -102,7 +102,6 @@ export const FlyingFish = memo(function FlyingFish({
   return (
     <Animated.View
       pointerEvents="none"
-      renderToHardwareTextureAndroid
       style={[styles.fly, flyStyle]}
     >
       {/* Uçuş çok kısa: boşta salınım ve kuyruk animasyonu kapalı, bu an için gereksiz yük. */}

@@ -18,9 +18,13 @@ export function sumBonus(owned: Record<number, number>, fishDefs: FishDef[]): nu
   return total;
 }
 
-// Ödüle uygulanan bonus yüzdesi (üst sınırlı).
+// Ödüle uygulanan bonus yüzdesi: koleksiyon doluluğuna bağlı, tek genel bonus.
+// Mağazaya özel (storeOnly) canlılar sayıya dahil değil. Balık sayısı artsa da tavan sabit kalır.
 export function bonusPercent(owned: Record<number, number>, fishDefs: FishDef[]): number {
-  return Math.min(sumBonus(owned, fishDefs), REWARD.maxBonusPct);
+  const pool = fishDefs.filter((f) => !f.storeOnly);
+  if (pool.length === 0) return 0;
+  const have = pool.filter((f) => (owned[f.id] ?? 0) > 0).length;
+  return Math.round((have / pool.length) * REWARD.collectionBonusMaxPct);
 }
 
 export function isBossLevel(level: number): boolean {
@@ -42,9 +46,11 @@ export function calcReward(
     base * (1 + bonusPct / 100) * (1 + hiddenBonusPct / 100) * multiplier
   );
 
+  // Her 25 levelde bir bedava yumurta, sırayla normal ve nadir: 25 normal, 50 nadir, 75 normal...
   let egg: EggKind | null = null;
-  if (boss) egg = 'rare';
-  else if (level % REWARD.normalEggEvery === 0) egg = 'normal';
+  if (level % REWARD.freeEggEvery === 0) {
+    egg = (level / REWARD.freeEggEvery) % 2 === 1 ? 'normal' : 'rare';
+  }
 
   return { pearls, egg, boss, bonusPct, hiddenBonusPct };
 }

@@ -51,35 +51,61 @@ describe('eggs', () => {
     });
 
     test('pity: epic/legendary çıkınca sıfırlanır, çıkmazsa artar', () => {
-        const common = rollEgg('normal', 5, {}, defs, () => 0.0)!;
+        const common = rollEgg('normal', 5, 0, {}, defs, () => 0.0)!;
         expect(common.fish.rarity).toBe('common');
         expect(common.pity).toBe(6);
 
-        const epic = rollEgg('normal', 5, {}, defs, () => 0.95)!;
+        const epic = rollEgg('normal', 5, 0, {}, defs, () => 0.95)!;
         expect(epic.fish.rarity).toBe('epic');
         expect(epic.pity).toBe(0);
     });
 
     test('yeni balık duplicate inci vermez', () => {
-        const r = rollEgg('normal', 0, {}, defs, () => 0.0)!;
+        const r = rollEgg('normal', 0, 0, {}, defs, () => 0.0)!;
         expect(r.isNew).toBe(true);
         expect(r.duplicatePearls).toBe(0);
     });
 
     test('tekrar gelen balık inciye çevrilir', () => {
-        const r = rollEgg('normal', 0, { 0: 1, 1: 1 }, defs, () => 0.0)!;
+        const r = rollEgg('normal', 0, 0, { 0: 1, 1: 1 }, defs, () => 0.0)!;
         expect(r.isNew).toBe(false);
         expect(r.duplicatePearls).toBe(20);
     });
 
     test('istenen nadirlikte balık yoksa en yakın nadirliğe düşer', () => {
         const onlyCommon = [fish(0, 'common')];
-        const r = rollEgg('rare', 0, {}, onlyCommon, () => 0.99)!;
+        const r = rollEgg('rare', 0, 0, {}, onlyCommon, () => 0.99)!;
         expect(r.fish.id).toBe(0);
     });
 
+    test('tekrar serisi dolunca normal yumurta yeni balık verir', () => {
+        const owned = { 0: 1 };
+        const r = rollEgg('normal', 0, 2, owned, defs, () => 0.0)!;
+        expect(r.isNew).toBe(true);
+        expect(r.dupStreak).toBe(0);
+    });
+
+    test('tekrar balık seriyi artırır', () => {
+        const r = rollEgg('normal', 0, 0, { 0: 1, 1: 1 }, defs, () => 0.0)!;
+        expect(r.isNew).toBe(false);
+        expect(r.dupStreak).toBe(1);
+    });
+
+    test('nadir yumurta sahip olunmayan balığı seçer', () => {
+        const r = rollEgg('rare', 0, 0, { 0: 1, 1: 1, 2: 1 }, defs, () => 0.0)!;
+        expect(r.isNew).toBe(true);
+    });
+
+    test('mağazaya özel balık yumurta havuzuna girmez', () => {
+        const pool = [fish(0, 'common'), { ...fish(9, 'common'), storeOnly: true }];
+        for (let i = 0; i < 50; i++) {
+            const r = rollEgg('normal', 0, 0, {}, pool, seededRng(i))!;
+            expect(r.fish.id).toBe(0);
+        }
+    });
+
     test('boş havuzda null döner', () => {
-        expect(rollEgg('normal', 0, {}, [], () => 0.5)).toBeNull();
+        expect(rollEgg('normal', 0, 0, {}, [], () => 0.5)).toBeNull();
     });
 
     test('uzun vadede oranlar beklenene yakındır (normal yumurta)', () => {

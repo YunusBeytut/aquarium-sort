@@ -1,4 +1,10 @@
-import { DUPLICATE_PEARLS, EGG_ODDS, PITY_LIMIT, RARITY_ORDER } from './economy';
+import {
+  DUPLICATE_PEARLS,
+  DUPLICATE_STREAK_LIMIT,
+  EGG_ODDS,
+  PITY_LIMIT,
+  RARITY_ORDER,
+} from './economy';
 import { EggKind, FishDef, Rarity } from './types';
 
 export type EggResult = {
@@ -8,6 +14,8 @@ export type EggResult = {
   duplicatePearls: number;
   // Yumurta sonrası yeni pity sayacı
   pity: number;
+  // Yumurta sonrası üst üste tekrar balık sayacı
+  dupStreak: number;
 };
 
 export function rollRarity(kind: EggKind, pity: number, rng: () => number): Rarity {
@@ -47,14 +55,22 @@ function pickFish(fishDefs: FishDef[], rarity: Rarity, rng: () => number): FishD
 export function rollEgg(
   kind: EggKind,
   pity: number,
+  dupStreak: number,
   owned: Record<number, number>,
-  fishDefs: FishDef[],
+  allFish: FishDef[],
   rng: () => number = Math.random
 ): EggResult | null {
+  // Mağazaya özel canlılar yumurta havuzuna girmez.
+  const fishDefs = allFish.filter((f) => !f.storeOnly);
   if (fishDefs.length === 0) return null;
 
   const rarity = rollRarity(kind, pity, rng);
-  const fish = pickFish(fishDefs, rarity, rng);
+
+  // Nadir yumurta her zaman, normal yumurta tekrar serisi dolunca yeni balık verir.
+  // Sahip olunmayan balık kalmadıysa normal akışa düşer (tekrar balık + inci iadesi).
+  const guaranteeNew = kind === 'rare' || dupStreak >= DUPLICATE_STREAK_LIMIT;
+  const unowned = guaranteeNew ? fishDefs.filter((f) => !((owned[f.id] ?? 0) > 0)) : [];
+  const fish = pickFish(unowned.length > 0 ? unowned : fishDefs, rarity, rng);
   if (!fish) return null;
 
   const isNew = !((owned[fish.id] ?? 0) > 0);
@@ -66,5 +82,6 @@ export function rollEgg(
     isNew,
     duplicatePearls,
     pity: highRarity ? 0 : pity + 1,
+    dupStreak: isNew ? 0 : dupStreak + 1,
   };
 }

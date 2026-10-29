@@ -1,4 +1,6 @@
+import * as Haptics from 'expo-haptics';
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   Easing,
@@ -12,51 +14,41 @@ import Animated, {
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
-import Svg, { Circle, Ellipse, Path } from 'react-native-svg';
+import Svg, { Path } from 'react-native-svg';
 
+import { SoundManager } from '@/audio/SoundManager';
 import { FishSprite } from '@/components/puzzle/FishSprite';
 import type { EggResult } from '@/game/eggs';
-import type { EggKind } from '@/game/types';
+import type { EggKind, Rarity } from '@/game/types';
+import { useGameStore } from '@/store/gameStore';
 
-const STAGE = 260;
-const EGG_W = 120;
-const EGG_H = 150;
+import {
+  EGG_ASPECT,
+  EGG_CRACK_PATH,
+  EGG_VIEW_H,
+  EGG_VIEW_W,
+  EggArt,
+  PearlIcon,
+} from './EggArt';
+
+const STAGE = 250;
+const EGG_SIZE = 160; // yumurta yüksekliği
+const EGG_W = EGG_SIZE * EGG_ASPECT;
 const FISH_WIDTH = 150;
 
-const TEXT = {
-  cracking: 'Yumurta çatlıyor...',
-  tapToSkip: 'Atlamak için dokun',
-  isNew: 'YENİ!',
-  duplicate: 'Zaten koleksiyonunda',
-  pearls: 'inci',
-  great: 'Harika!',
-  another: 'Bir tane daha aç',
+const RARITY_COLOR: Record<Rarity, string> = {
+  common: '#b0bec5',
+  rare: '#4fc3f7',
+  epic: '#ba68c8',
+  legendary: '#ffd54f',
 };
 
-const RARITY_COLOR: Record<string, string> = {
-  common: '#90a4ae',
-  uncommon: '#66bb6a',
-  rare: '#42a5f5',
-  epic: '#ab47bc',
-  legendary: '#ffca28',
-};
-
-const RARITY_LABEL: Record<string, string> = {
-  common: 'Yaygın',
-  uncommon: 'Seyrek',
-  rare: 'Nadir',
-  epic: 'Epik',
-  legendary: 'Efsanevi',
-};
-
-const EGG_LOOK: Record<EggKind, { body: string; spots: string; outline: string }> = {
-  normal: { body: '#f3e3c3', spots: '#d9b98a', outline: '#8a6d3b' },
-  rare: { body: '#c9a8ff', spots: '#8e5be8', outline: '#4b2a8a' },
-};
-
-const EGG_PATH =
-  'M60 6 C92 6 112 58 112 94 C112 126 90 146 60 146 C30 146 8 126 8 94 C8 58 28 6 60 6 Z';
-const CRACK_PATH = 'M60 8 L52 34 L68 52 L50 76 L70 98 L56 124';
+const GOLD = '#ffd54f';
+const GOLD_EDGE = '#c99a14';
+const GOLD_TEXT = '#4a3500';
+const AQUA = '#4fc3f7';
+const AQUA_EDGE = '#1f8fc0';
+const AQUA_TEXT = '#06263d';
 
 type ParticleProps = {
   angle: number;
@@ -102,6 +94,36 @@ const Particle = memo(function Particle({ angle, dist, size, color, delay }: Par
   );
 });
 
+function ModalButton({
+  label,
+  tone,
+  onPress,
+}: {
+  label: string;
+  tone: 'gold' | 'aqua';
+  onPress: () => void;
+}) {
+  const palette =
+    tone === 'gold'
+      ? { face: GOLD, edge: GOLD_EDGE, text: GOLD_TEXT }
+      : { face: AQUA, edge: AQUA_EDGE, text: AQUA_TEXT };
+
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      style={({ pressed }) => [
+        styles.btn,
+        { backgroundColor: palette.face, borderBottomColor: palette.edge },
+        pressed && styles.btnPressed,
+      ]}
+    >
+      <Text style={[styles.btnText, { color: palette.text }]}>{label}</Text>
+    </Pressable>
+  );
+}
+
 type Props = {
   visible: boolean;
   kind: EggKind;
@@ -114,6 +136,7 @@ type Props = {
 };
 
 function EggModalBase({ visible, kind, result, eggsLeft = 0, onClose, onOpenAnother }: Props) {
+  const { t } = useTranslation();
   const [revealedFor, setRevealedFor] = useState<EggResult | null>(null);
   const doneRef = useRef(false);
 
@@ -126,12 +149,24 @@ function EggModalBase({ visible, kind, result, eggsLeft = 0, onClose, onOpenAnot
 
   const phase: 'egg' | 'reveal' = result && revealedFor === result ? 'reveal' : 'egg';
 
+  // Balık ortaya çıkarken ses ve titreşim: yeni ya da epik/efsanevi balık kutlanır, tekrar edeni hafif geçilir.
+  const celebrate = useCallback((r: EggResult) => {
+    const high = r.fish.rarity === 'epic' || r.fish.rarity === 'legendary';
+    if (useGameStore.getState().settings.haptics) {
+      if (r.isNew || high) void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      else void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+    if (high) SoundManager.play('levelComplete');
+    else if (r.isNew) SoundManager.play('jarComplete');
+  }, []);
+
   const startReveal = useCallback(() => {
     if (doneRef.current || !result) return;
     doneRef.current = true;
     cancelAnimation(wobble);
     wobble.value = withTiming(0, { duration: 60 });
     setRevealedFor(result);
+    celebrate(result);
     flash.value = withSequence(
       withTiming(1, { duration: 120 }),
       withTiming(0, { duration: 420 })
@@ -142,7 +177,7 @@ function EggModalBase({ visible, kind, result, eggsLeft = 0, onClose, onOpenAnot
       -1,
       false
     );
-  }, [result, wobble, flash, reveal, glow]);
+  }, [result, celebrate, wobble, flash, reveal, glow]);
 
   useLayoutEffect(() => {
     if (!visible || !result) return;
@@ -197,10 +232,8 @@ function EggModalBase({ visible, kind, result, eggsLeft = 0, onClose, onOpenAnot
   }));
   const infoStyle = useAnimatedStyle(() => ({ opacity: Math.min(1, reveal.value) }));
 
-  const rarityColor = result ? (RARITY_COLOR[result.fish.rarity] ?? '#90a4ae') : '#90a4ae';
-  const rarityLabel = result
-    ? (RARITY_LABEL[result.fish.rarity] ?? String(result.fish.rarity).toUpperCase())
-    : '';
+  const rarityColor = result ? RARITY_COLOR[result.fish.rarity] : RARITY_COLOR.common;
+  const rarityLabel = result ? t(`rarity.${result.fish.rarity}`) : '';
 
   const particles = useMemo(() => {
     if (!result) return [];
@@ -214,7 +247,6 @@ function EggModalBase({ visible, kind, result, eggsLeft = 0, onClose, onOpenAnot
     }));
   }, [result]);
 
-  const look = EGG_LOOK[kind] ?? EGG_LOOK.normal;
   const canOpenAnother = !!onOpenAnother && eggsLeft > 0;
 
   return (
@@ -233,20 +265,17 @@ function EggModalBase({ visible, kind, result, eggsLeft = 0, onClose, onOpenAnot
         <View style={styles.stage}>
           {phase === 'egg' && (
             <Animated.View style={[styles.egg, eggStyle]}>
-              <Svg width={EGG_W} height={EGG_H} viewBox={`0 0 ${EGG_W} ${EGG_H}`}>
-                <Path d={EGG_PATH} fill={look.body} stroke={look.outline} strokeWidth={3} />
-                <Circle cx={42} cy={58} r={7} fill={look.spots} />
-                <Circle cx={78} cy={44} r={5} fill={look.spots} />
-                <Circle cx={82} cy={92} r={8} fill={look.spots} />
-                <Circle cx={40} cy={112} r={6} fill={look.spots} />
-                <Ellipse cx={42} cy={36} rx={9} ry={14} fill="#ffffff" opacity={0.3} />
-              </Svg>
+              <EggArt kind={kind} size={EGG_SIZE} />
               <Animated.View pointerEvents="none" style={[styles.crackLayer, crackStyle]}>
-                <Svg width={EGG_W} height={EGG_H} viewBox={`0 0 ${EGG_W} ${EGG_H}`}>
+                <Svg
+                  width={EGG_W}
+                  height={EGG_SIZE}
+                  viewBox={`0 0 ${EGG_VIEW_W} ${EGG_VIEW_H}`}
+                >
                   <Path
-                    d={CRACK_PATH}
+                    d={EGG_CRACK_PATH}
                     stroke="#3a2a1a"
-                    strokeWidth={2.5}
+                    strokeWidth={2.2}
                     fill="none"
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -280,39 +309,56 @@ function EggModalBase({ visible, kind, result, eggsLeft = 0, onClose, onOpenAnot
         </View>
 
         {phase === 'egg' ? (
-          <View style={styles.info}>
-            <Text style={styles.hint}>{TEXT.cracking}</Text>
-            <Text style={styles.subHint}>{TEXT.tapToSkip}</Text>
+          <View style={styles.waiting}>
+            <Text style={styles.hint}>{t('eggModal.cracking')}</Text>
+            <Text style={styles.subHint}>{t('eggModal.tapToSkip')}</Text>
           </View>
         ) : (
           result && (
-            <Animated.View style={[styles.info, infoStyle]}>
+            <Animated.View
+              style={[styles.card, { borderColor: `${rarityColor}aa` }, infoStyle]}
+            >
               {result.isNew ? (
-                <View style={[styles.badge, { backgroundColor: '#ffeb3b' }]}>
-                  <Text style={[styles.badgeText, { color: '#3e2f00' }]}>{TEXT.isNew}</Text>
+                <View style={styles.newBadge}>
+                  <Text style={styles.newBadgeText}>{t('eggModal.isNew')}</Text>
                 </View>
               ) : (
-                <View style={[styles.badge, { backgroundColor: 'rgba(255,255,255,0.16)' }]}>
-                  <Text style={[styles.badgeText, { color: '#ffffff' }]}>
-                    {TEXT.duplicate} · +{result.duplicatePearls} {TEXT.pearls}
-                  </Text>
+                <View style={styles.dupBadge}>
+                  <Text style={styles.dupText}>{t('eggModal.duplicate')}</Text>
+                  <View style={styles.dupPearls}>
+                    <Text style={styles.dupText}>+{result.duplicatePearls}</Text>
+                    <PearlIcon size={15} />
+                  </View>
                 </View>
               )}
 
               <Text style={styles.name}>{result.fish.name}</Text>
-              <Text style={[styles.rarity, { color: rarityColor }]}>{rarityLabel}</Text>
+
+              <View style={styles.metaRow}>
+                <View
+                  style={[
+                    styles.rarityChip,
+                    { borderColor: rarityColor, backgroundColor: `${rarityColor}2e` },
+                  ]}
+                >
+                  <Text style={[styles.rarityText, { color: rarityColor }]}>{rarityLabel}</Text>
+                </View>
+                {result.isNew && (
+                  <Text style={styles.bonusText}>
+                    {t('common.plusPercent', { pct: result.fish.bonusPct })} {t('eggModal.bonus')}
+                  </Text>
+                )}
+              </View>
 
               <View style={styles.buttons}>
                 {canOpenAnother && (
-                  <Pressable style={[styles.btn, styles.btnSecondary]} onPress={onOpenAnother}>
-                    <Text style={styles.btnText}>
-                      {TEXT.another} ({eggsLeft})
-                    </Text>
-                  </Pressable>
+                  <ModalButton
+                    label={`${t('eggModal.another')} (${eggsLeft})`}
+                    tone="aqua"
+                    onPress={onOpenAnother}
+                  />
                 )}
-                <Pressable style={[styles.btn, styles.btnPrimary]} onPress={onClose}>
-                  <Text style={[styles.btnText, { color: '#06283d' }]}>{TEXT.great}</Text>
-                </Pressable>
+                <ModalButton label={t('eggModal.great')} tone="gold" onPress={onClose} />
               </View>
             </Animated.View>
           )
@@ -330,7 +376,7 @@ export default EggModal;
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(8,24,48,0.94)',
+    backgroundColor: 'rgba(6,28,58,0.95)',
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 24,
@@ -343,7 +389,14 @@ const styles = StyleSheet.create({
   },
   egg: {
     width: EGG_W,
-    height: EGG_H,
+    height: EGG_SIZE,
+  },
+  crackLayer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
   glow: {
     position: 'absolute',
@@ -354,63 +407,6 @@ const styles = StyleSheet.create({
   particle: {
     position: 'absolute',
   },
-  info: {
-    alignItems: 'center',
-    marginTop: 12,
-    minHeight: 150,
-  },
-  hint: {
-    color: '#ffffff',
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  subHint: {
-    color: 'rgba(255,255,255,0.55)',
-    fontSize: 13,
-    marginTop: 6,
-  },
-  badge: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 14,
-    marginBottom: 10,
-  },
-  badgeText: {
-    fontSize: 14,
-    fontWeight: '800',
-  },
-  name: {
-    color: '#ffffff',
-    fontSize: 26,
-    fontWeight: '800',
-  },
-  rarity: {
-    fontSize: 15,
-    fontWeight: '700',
-    marginTop: 4,
-  },
-  buttons: {
-    marginTop: 22,
-    gap: 10,
-    alignSelf: 'stretch',
-    minWidth: 240,
-  },
-  btn: {
-    paddingVertical: 14,
-    borderRadius: 16,
-    alignItems: 'center',
-  },
-  btnPrimary: {
-    backgroundColor: '#80cbc4',
-  },
-  btnSecondary: {
-    backgroundColor: 'rgba(255,255,255,0.14)',
-  },
-  btnText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '800',
-  },
   flash: {
     position: 'absolute',
     top: 0,
@@ -419,11 +415,112 @@ const styles = StyleSheet.create({
     bottom: 0,
     backgroundColor: '#ffffff',
   },
-  crackLayer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+
+  waiting: {
+    alignItems: 'center',
+    marginTop: 12,
+    minHeight: 150,
+  },
+  hint: {
+    color: '#ffffff',
+    fontSize: 18,
+    fontWeight: '800',
+  },
+  subHint: {
+    color: 'rgba(255,255,255,0.55)',
+    fontSize: 13,
+    marginTop: 6,
+  },
+
+  card: {
+    alignSelf: 'stretch',
+    maxWidth: 360,
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: 'rgba(6,28,58,0.7)',
+    borderWidth: 1.5,
+    borderRadius: 26,
+    paddingHorizontal: 18,
+    paddingTop: 16,
+    paddingBottom: 18,
+  },
+  newBadge: {
+    backgroundColor: GOLD,
+    borderBottomWidth: 3,
+    borderBottomColor: GOLD_EDGE,
+    borderRadius: 999,
+    paddingHorizontal: 16,
+    paddingVertical: 4,
+  },
+  newBadgeText: {
+    fontSize: 15,
+    fontWeight: '900',
+    color: GOLD_TEXT,
+  },
+  dupBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+  },
+  dupText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#ffffff',
+  },
+  dupPearls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  name: {
+    fontSize: 26,
+    fontWeight: '900',
+    color: '#ffffff',
+    textAlign: 'center',
+  },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  rarityChip: {
+    borderWidth: 1.5,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 3,
+  },
+  rarityText: {
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  bonusText: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: GOLD,
+  },
+  buttons: {
+    alignSelf: 'stretch',
+    marginTop: 8,
+    gap: 10,
+  },
+  btn: {
+    minHeight: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 16,
+    borderBottomWidth: 4,
+    paddingHorizontal: 14,
+  },
+  btnPressed: {
+    transform: [{ translateY: 3 }],
+    opacity: 0.92,
+  },
+  btnText: {
+    fontSize: 16,
+    fontWeight: '900',
   },
 });

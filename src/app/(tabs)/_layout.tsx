@@ -1,7 +1,9 @@
 import { Tabs } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import type { ColorValue } from 'react-native';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
+import { Analytics } from '@/services/analytics';
 import { useGameStore } from '@/store/gameStore';
 
 type IconName = 'fish' | 'shop' | 'collection' | 'settings';
@@ -60,12 +62,21 @@ function TabIcon({ name, color: colorProp, size, focused }: IconProps) {
 }
 
 export default function TabsLayout() {
+  const { t } = useTranslation();
   const eggCount = useGameStore((s) => s.eggs.normal + s.eggs.rare);
 
   return (
     <Tabs
+      // Sekme odaklanınca ekran adı Analytics'e gider (e.target: "shop-xxxx").
+      screenListeners={{
+        focus: (e) => Analytics.screen((e.target ?? 'tab').split('-')[0]),
+      }}
       screenOptions={{
         headerShown: false,
+        // Sekme geçişinde gri yerine oyun rengi; sekmeler önceden hazırlanır, geçişte yükleme beklenmez.
+        sceneStyle: { backgroundColor: '#0b3d5c' },
+        lazy: false,
+        freezeOnBlur: true,
         tabBarActiveTintColor: '#7fdbff',
         tabBarInactiveTintColor: '#7f9db3',
         tabBarStyle: {
@@ -78,7 +89,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Akvaryum',
+          title: t('tabs.aquarium'),
           tabBarIcon: ({ color, size, focused }) => (
             <TabIcon name="fish" color={color} size={size} focused={focused} />
           ),
@@ -87,7 +98,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="shop"
         options={{
-          title: 'Mağaza',
+          title: t('tabs.shop'),
           tabBarIcon: ({ color, size, focused }) => (
             <TabIcon name="shop" color={color} size={size} focused={focused} />
           ),
@@ -98,7 +109,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="collection"
         options={{
-          title: 'Koleksiyon',
+          title: t('tabs.collection'),
           tabBarIcon: ({ color, size, focused }) => (
             <TabIcon name="collection" color={color} size={size} focused={focused} />
           ),
@@ -107,7 +118,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="settings"
         options={{
-          title: 'Ayarlar',
+          title: t('tabs.settings'),
           tabBarIcon: ({ color, size, focused }) => (
             <TabIcon name="settings" color={color} size={size} focused={focused} />
           ),

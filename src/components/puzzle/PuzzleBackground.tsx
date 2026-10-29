@@ -1,12 +1,17 @@
 import { memo, useMemo, useState } from 'react';
 import { Image, LayoutChangeEvent, StyleSheet, View } from 'react-native';
 
-// Görsel proje kökündeki assets/images klasöründe durur (src içinde değil).
-// Bu dosya src/components/puzzle/ içinde olduğu için köke 3 seviye çıkılır.
-const BG = require('../../../assets/images/puzzle-bg.webp');
-const BG_SRC = Image.resolveAssetSource(BG);
-const BG_W = BG_SRC?.width || 841;
-const BG_H = BG_SRC?.height || 1870;
+import { DECOR } from '@/data';
+import { getBackgroundImage } from '@/data/decorImages';
+import { resolveBackgroundId } from '@/game/decor';
+import { useGameStore } from '@/store/gameStore';
+
+// Görseller proje kökündeki assets/images klasöründe durur (src içinde değil).
+// Hangi görselin kullanılacağı oyuncunun seçtiği arka plana göre belirlenir
+// (varsayılan: assets/images/puzzle-bg.webp, diğerleri: src/data/decorImages.ts).
+// Boyut okunamazsa varsayılan görselin boyutu kullanılır.
+const FALLBACK_W = 841;
+const FALLBACK_H = 1870;
 
 // Görsel yüklenemezse veya boyut hesaplanana kadar görünen zemin rengi.
 const FALLBACK_COLOR = '#0d3b7a';
@@ -14,6 +19,18 @@ const FALLBACK_COLOR = '#0d3b7a';
 // Ekranın en arkasına yerleşir, dokunmaları engellemez.
 // Kullanım: <View style={{ flex: 1 }}><PuzzleBackground /> ...içerik... </View>
 function PuzzleBackgroundBase() {
+  const selected = useGameStore((s) => s.selectedBackground);
+  const ownedDecor = useGameStore((s) => s.ownedDecor);
+  const currentLevel = useGameStore((s) => s.currentLevel);
+
+  const backgroundId = resolveBackgroundId(selected, DECOR, ownedDecor, currentLevel);
+  const source = getBackgroundImage(backgroundId);
+
+  const natural = useMemo(() => {
+    const resolved = Image.resolveAssetSource(source);
+    return { w: resolved?.width || FALLBACK_W, h: resolved?.height || FALLBACK_H };
+  }, [source]);
+
   const [size, setSize] = useState({ w: 0, h: 0 });
 
   const onLayout = (e: LayoutChangeEvent) => {
@@ -26,20 +43,20 @@ function PuzzleBackgroundBase() {
   // fazlalık üstten ve yanlardan kırpılır.
   const img = useMemo(() => {
     if (!size.w || !size.h) return null;
-    const scale = Math.max(size.w / BG_W, size.h / BG_H);
-    const width = BG_W * scale;
+    const scale = Math.max(size.w / natural.w, size.h / natural.h);
+    const width = natural.w * scale;
     return {
       width,
-      height: BG_H * scale,
+      height: natural.h * scale,
       left: (size.w - width) / 2,
     };
-  }, [size]);
+  }, [size, natural]);
 
   return (
     <View pointerEvents="none" style={styles.root} onLayout={onLayout}>
       {img && (
         <Image
-          source={BG}
+          source={source}
           fadeDuration={0}
           resizeMode="stretch"
           style={{

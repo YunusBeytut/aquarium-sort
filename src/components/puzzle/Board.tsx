@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { FlyingFish } from './FlyingFish';
 import { BALL_SIZE, FISH_H, FISH_W, JAR_MARGIN_TOP, JAR_W, Jar, jarHeight, slotTopInJar } from './Jar';
+import { TutorialHand } from './TutorialHand';
 
 export type Flight = {
   id: number;
@@ -17,6 +18,10 @@ export type Flight = {
 type Frame = { x: number; y: number; width: number; height: number };
 type Progress = Record<number, { landed: number; settled: number }>;
 
+// Öğretici eli: hangi kavanozdan hangisine dokunulacağı. 'drop' ise kaynak zaten seçilidir,
+// el yalnızca hedefte dokunur.
+export type Guide = { from: number; to: number; phase: 'pick' | 'drop' };
+
 type Props = {
   jars: number[][];
   // Her kavanozda alttaki kaç balık gizli ("?" olarak çizilir). Verilmezse hepsi açık.
@@ -26,6 +31,9 @@ type Props = {
   hint: { from: number; to: number } | null;
   invalidJar: number | null;
   flight: Flight | null;
+  guide?: Guide | null;
+  // Seviye balık id'si -> özel canlı id'si (yalnızca görünüm). Mantık ham id'lerle çalışır.
+  skin?: Record<number, number>;
   onJarPress: (index: number) => void;
   onFlightDone: (id: number) => void;
 };
@@ -88,6 +96,8 @@ export function Board({
   hint,
   invalidJar,
   flight,
+  guide = null,
+  skin,
   onJarPress,
   onFlightDone,
 }: Props) {
@@ -95,6 +105,21 @@ export function Board({
   // Sabit onPress referansları: Jar'ın memo'su her land/settled'da bozulmasın.
   const pressRef = useRef(onJarPress);
   pressRef.current = onJarPress;
+  // Görünüm dizileri: jar başına önbelleklenir ki Jar memo'su bozulmasın.
+  const skinCache = useRef(new WeakMap<number[], number[]>());
+  useEffect(() => {
+    skinCache.current = new WeakMap();
+  }, [skin]);
+  const skinned = (arr: number[]) => {
+    if (!skin) return arr;
+    let out = skinCache.current.get(arr);
+    if (!out) {
+      out = arr.map((id) => skin[id] ?? id);
+      skinCache.current.set(arr, out);
+    }
+    return out;
+  };
+
   const pressHandlers = useMemo(
     () => jars.map((_, i) => () => pressRef.current(i)),
     [jars.length]
@@ -179,6 +204,30 @@ export function Board({
     });
   }, [visuals, progress]);
 
+  // Öğretici eli için parmak ucu noktaları (tahta koordinatlarında). Kaynakta üstteki balığa,
+  // hedefte balığın ineceği yere doğru; çok alçaksa kavanozun ortasına dokunur.
+  let hand: { from: { x: number; y: number }; to: { x: number; y: number }; key: string } | null = null;
+  if (guide) {
+    const fromFrame = frames.current[guide.from];
+    const toFrame = frames.current[guide.to];
+    const fromJar = jars[guide.from];
+    const toJar = jars[guide.to];
+    if (fromFrame && toFrame && fromJar && toJar) {
+      const topY =
+        fromFrame.y + slotTopInJar(capacity, Math.max(0, fromJar.length - 1)) + BALL_SIZE / 2;
+      const landY =
+        toFrame.y + slotTopInJar(capacity, Math.min(toJar.length, capacity - 1)) + BALL_SIZE / 2;
+      const midY = toFrame.y + JAR_MARGIN_TOP + jarHeight(capacity) / 2;
+      const toPoint = { x: toFrame.x + toFrame.width / 2, y: Math.min(landY, midY) };
+      const fromPoint = { x: fromFrame.x + fromFrame.width / 2, y: topY };
+      hand = {
+        from: guide.phase === 'drop' ? toPoint : fromPoint,
+        to: toPoint,
+        key: `${guide.from}-${guide.to}-${guide.phase}`,
+      };
+    }
+  }
+
   // Yalnızca görünen balıklar sayılır; gizli ("?") olanlar animasyon yükü getirmez.
   const totalFish = jars.reduce((n, j, i) => n + j.length - (hidden?.[i] ?? 0), 0);
   const idleAnim = totalFish <= IDLE_ANIM_MAX_FISH;
@@ -212,7 +261,7 @@ export function Board({
                 }}
               >
                 <Jar
-                  fish={fish}
+                  fish={skinned(fish)}
                   capacity={capacity}
                   selected={selected === index}
                   hint={hint?.from === index ? 'from' : hint?.to === index ? 'to' : null}
@@ -235,7 +284,7 @@ export function Board({
             return Array.from({ length: v.count }, (_, k) => (
               <FlyingFish
                 key={`${v.id}-${k}`}
-                fishId={v.fishId}
+                fishId={skin?.[v.fishId] ?? v.fishId}
                 from={slotPoint(fromFrame, capacity, v.fromLen - 1 - k)}
                 to={slotPoint(toFrame, capacity, v.toLen + k)}
                 delay={k * STAGGER_MS}
@@ -244,6 +293,8 @@ export function Board({
               />
             ));
           })}
+
+          {hand && <TutorialHand key={hand.key} from={hand.from} to={hand.to} />}
         </View>
       )}
     </View>

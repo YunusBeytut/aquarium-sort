@@ -1,1 +1,217 @@
-{}
+{
+  "common": {
+    "plusPercent": "+%{{pct}}"
+  },
+  "rarity": {
+    "common": "Yaygın",
+    "rare": "Nadir",
+    "epic": "Epik",
+    "legendary": "Efsanevi"
+  },
+  "tabs": {
+    "aquarium": "Akvaryum",
+    "shop": "Mağaza",
+    "collection": "Koleksiyon",
+    "settings": "Ayarlar"
+  },
+  "home": {
+    "play": "Oyna",
+    "level": "Level",
+    "eggs_other": "{{count}} yumurtan var, aç",
+    "pearls": "İnci",
+    "bonus": "Bonus",
+    "fish": "Balık",
+    "feed": "Besle · {{count}}",
+    "getFood": "Yem al",
+    "emptyAquarium": "Henüz balığın yok. Level oyna, yumurta aç."
+  },
+  "collection": {
+    "title": "Koleksiyon",
+    "bonus": "Bonus",
+    "all": "Tümü",
+    "unknown": "???",
+    "emptyFilter": "Bu nadirlikte henüz balık yok.",
+    "specialTitle": "Özel Canlılar",
+    "specialSub": "Yalnızca mağazadan alınır",
+    "special": "Özel",
+    "inStore": "Mağazada",
+    "fish": "Balıklar",
+    "a11yOwned": "{{name}}, {{label}}",
+    "a11yBonus": ", bonus yüzde {{pct}}",
+    "a11yLocked": "Henüz alınmadı, {{label}}"
+  },
+  "settings": {
+    "title": "Ayarlar",
+    "sound": "Ses",
+    "soundHint": "Oyun efektleri",
+    "music": "Müzik",
+    "musicHint": "Arka plan müziği",
+    "haptics": "Titreşim",
+    "hapticsHint": "Dokunma geri bildirimi",
+    "feedback": "Geri bildirim",
+    "feedbackHint": "Fikir, öneri ve hata bildir",
+    "privacy": "Gizlilik politikası",
+    "privacyHint": "Verilerini nasıl kullandığımızı oku",
+    "version": "Sürüm {{v}}",
+    "levelsPlayed": "Oynanan level",
+    "totalMoves": "Toplam hamle"
+  },
+  "shop": {
+    "title": "Mağaza",
+    "collection": "Koleksiyon",
+    "open": "Aç",
+    "buy": "Al",
+    "owned": "Sahip: {{n}}",
+    "missing_other": "{{count}} inci eksik",
+    "accessories": "Aksesuarlar",
+    "accessoriesHint": "Akvaryumuna süs ekle. Dokununca canlanır.",
+    "use": "Kullan",
+    "remove": "Kaldır",
+    "backgrounds": "Arka Planlar",
+    "backgroundsHint": "Oyun ekranının arka planını seç. Kilitliler levele gelince kendiliğinden açılır.",
+    "aquariumBackgrounds": "Akvaryum Arka Planları",
+    "aquariumBackgroundsHint": "Yalnızca akvaryum ekranında görünür. İnciyle alınır.",
+    "defaultBackground": "Varsayılan",
+    "select": "Seç",
+    "selected": "Seçili",
+    "shopFish": "Özel Canlılar",
+    "shopFishHint": "Yumurtadan çıkmaz, yalnızca inciyle alınır. Ödül bonusu vermez, koleksiyonuna eklenir.",
+    "shopFishOwned": "Sende",
+    "unlockAt": "Level {{n}}'de açılır",
+    "locked": "Kilitli",
+    "a11yBuy": "{{name}} satın al, {{price}} inci",
+    "egg": {
+      "normal": {
+        "name": "Normal yumurta",
+        "sub": "İçinden sürpriz bir balık çıkar"
+      },
+      "rare": {
+        "name": "Nadir yumurta",
+        "sub": "Daha özel bir sürpriz seni bekliyor"
+      }
+    },
+    "food": {
+      "name": "Balık yemi",
+      "sub": "Bir balığa dokun, sonra besle. Çok severler!",
+      "stock": "Stok: {{count}}"
+    }
+  },
+  "daily": {
+    "title": "Günlük Seri",
+    "streak": "{{n}} günlük seri",
+    "start": "Serine başla!",
+    "day": "{{n}}. Gün",
+    "claim": "Ödülü Al",
+    "claimed": "Yarın tekrar gel",
+    "close": "Kapat"
+  },
+  "cloud": {
+    "title": "İlerlemeni kaydet",
+    "hint": "Google hesabını bağla, yeni telefonda ilerlemen kaybolmasın.",
+    "signedInAs": "{{name}} ile giriş yapıldı",
+    "signIn": "Google ile giriş yap",
+    "signOut": "Çıkış yap",
+    "deleteAccount": "Hesabı sil",
+    "deleteTitle": "Hesap silinsin mi?",
+    "deleteBody": "Bulut kaydın ve hesabın silinecek. Bu cihazdaki ilerleme kalır.",
+    "delete": "Sil",
+    "cancel": "Vazgeç",
+    "error": "Bir sorun oluştu. Bağlantını kontrol edip tekrar dene.",
+    "conflictTitle": "İki kayıt bulundu",
+    "conflictBody": "Bulut kaydı: Level {{cloud}}\nBu cihaz: Level {{local}}\n\nSeçmediğin kaydın üzerine yazılacak.",
+    "useCloud": "Bulut kaydını kullan",
+    "useLocal": "Bu cihazı kullan",
+    "updateTitle": "Güncelleme gerekli",
+    "updateBody": "Bulut kaydın daha yeni bir sürümle oluşturulmuş. Eşitlemek için oyunu güncelle."
+  },
+  "play": {
+    "home": "‹ Ana ekran",
+    "level": "Level {{n}}",
+    "moves": "Hamle: {{n}}",
+    "stuck": "Geçerli hamle kalmadı. Geri al, ekstra kavanoz veya yeniden dene.",
+    "bossDone": "Boss level tamamlandı!",
+    "levelDone": "Level {{n}} tamamlandı!",
+    "solvedIn_other": "{{count}} hamlede çözdün",
+    "pearls_other": "+{{count}} inci",
+    "bonus": "Balık bonusu: +{{n}}%",
+    "hiddenBonus": "Gizli balık bonusu: +{{n}}%",
+    "eggRare": "+1 Nadir yumurta",
+    "eggNormal": "+1 Normal yumurta",
+    "noReward": "Bu leveli daha önce tamamlamıştın, ödül yok.",
+    "next": "Devam",
+    "homeLink": "Ana ekran",
+    "loadFailed": "Level yüklenemedi",
+    "levelInfo": "{{owned}}/{{total}} balığın sende",
+    "levelInfoBonus": "{{owned}}/{{total}} balığın sende · bonus +{{bonus}}%",
+    "levelInfoNone": "Bu leveldeki balıklar henüz sende değil",
+    "adFailed": "Reklam gösterilemedi, biraz sonra tekrar dene.",
+    "helpers": {
+      "undo": "Geri al",
+      "extraJar": "Kavanoz",
+      "hint": "İpucu",
+      "restart": "Yeniden"
+    }
+  },
+  "feedback": {
+    "title": "Geri bildirim",
+    "subtitle": "Fikir, öneri ya da karşılaştığın bir hatayı yaz.",
+    "messagePlaceholder": "Mesajın...",
+    "emailPlaceholder": "E-posta (isteğe bağlı, cevap istersen)",
+    "send": "Gönder",
+    "sending": "Gönderiliyor...",
+    "cancel": "Vazgeç",
+    "close": "Kapat",
+    "thanksTitle": "Teşekkürler!",
+    "thanksBody": "Mesajın bize ulaştı.",
+    "errorEmpty": "Lütfen bir mesaj yaz.",
+    "errorEmail": "E-posta adresi geçerli görünmüyor.",
+    "errorSend": "Gönderilemedi. İnternet bağlantını kontrol edip tekrar dene.",
+    "privacyNote": "Mesajın ve (yazdıysan) e-postan yalnızca sana dönüş yapmak ve oyunu geliştirmek için kullanılır."
+  },
+  "eggModal": {
+    "cracking": "Yumurta çatlıyor...",
+    "tapToSkip": "Atlamak için dokun",
+    "isNew": "YENİ!",
+    "duplicate": "Zaten koleksiyonunda",
+    "bonus": "bonus",
+    "great": "Harika!",
+    "another": "Bir tane daha aç"
+  },
+  "iap": {
+    "title": "İnci Paketleri",
+    "noAds": "Reklamları Kaldır",
+    "noAdsSub": "Reklamsız oyna",
+    "noAdsActive": "Reklamlar kapalı",
+    "restore": "Satın alımları geri yükle",
+    "thanks": "Teşekkürler!",
+    "pending": "Ödeme onay bekliyor.",
+    "error": "Satın alma tamamlanamadı. Tekrar dene.",
+    "restored": "Satın alımların kontrol edildi.",
+    "restoreError": "Geri yükleme başarısız."
+  },
+  "refill": {
+    "title": "{{name}} hakkın bitti",
+    "sub": "Devam etmek için hak kazan",
+    "watch": "Video izle  +{{amount}}",
+    "buy_other": "{{count}} inci  +{{amount}}",
+    "cancel": "Vazgeç"
+  },
+  "decor": {
+    "bg-50": "Antik Sütunlar",
+    "bg-100": "Batık Gemi",
+    "bg-150": "Kayıp Şehir",
+    "bg-coral": "Mercan Bahçesi",
+    "bg-forest": "Orman",
+    "bg-glacier": "Buzul",
+    "bg-crystal": "Kristal Mağara",
+    "acc-chest": "Hazine Sandığı",
+    "acc-clam": "İncili İstiridye",
+    "acc-ship": "Gemi Enkazı",
+    "acc-anchor": "Eski Çapa",
+    "acc-skull": "Korsan Kafatası",
+    "aq-pirate": "Korsan Mezarlığı",
+    "aq-cute": "Şirin Resif",
+    "aq-glacier": "Buzul Mağarası",
+    "aq-night": "Gece"
+  }
+}

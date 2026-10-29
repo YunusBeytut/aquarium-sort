@@ -1,18 +1,276 @@
 [
-  { "id": 0, "name": "Clownfish", "rarity": "common", "biome": "reef", "bonusPct": 1, "template": "round", "palette": { "body": "#ff7043", "accent": "#ffffff", "pattern": "stripes" } },
-  { "id": 1, "name": "Blue Tang", "rarity": "common", "biome": "reef", "bonusPct": 1, "template": "flat", "palette": { "body": "#2979ff", "accent": "#ffeb3b" } },
-  { "id": 2, "name": "Yellow Tang", "rarity": "common", "biome": "reef", "bonusPct": 1, "template": "flat", "palette": { "body": "#ffd600", "accent": "#fff59d" } },
-  { "id": 3, "name": "Guppy", "rarity": "common", "biome": "reef", "bonusPct": 1, "template": "round", "palette": { "body": "#26c6da", "accent": "#ec407a", "pattern": "dots" } },
-  { "id": 4, "name": "Neon Tetra", "rarity": "common", "biome": "reef", "bonusPct": 1, "template": "long", "palette": { "body": "#29b6f6", "accent": "#ff1744", "pattern": "stripes" } },
-  { "id": 5, "name": "Goldfish", "rarity": "common", "biome": "reef", "bonusPct": 1, "template": "round", "palette": { "body": "#ffa000", "accent": "#ffe082" } },
-  { "id": 6, "name": "Damselfish", "rarity": "common", "biome": "reef", "bonusPct": 1, "template": "round", "palette": { "body": "#5c6bc0", "accent": "#c5cae9" } },
-  { "id": 7, "name": "Minnow", "rarity": "common", "biome": "reef", "bonusPct": 1, "template": "long", "palette": { "body": "#90a4ae", "accent": "#eceff1" } },
-  { "id": 8, "name": "Angelfish", "rarity": "rare", "biome": "reef", "bonusPct": 3, "template": "fin", "palette": { "body": "#fdd835", "accent": "#212121", "pattern": "stripes" } },
-  { "id": 9, "name": "Butterflyfish", "rarity": "rare", "biome": "reef", "bonusPct": 3, "template": "flat", "palette": { "body": "#fff176", "accent": "#212121", "pattern": "dots" } },
-  { "id": 10, "name": "Moorish Idol", "rarity": "rare", "biome": "reef", "bonusPct": 3, "template": "fin", "palette": { "body": "#fafafa", "accent": "#ffca28", "pattern": "stripes" } },
-  { "id": 11, "name": "Lionfish", "rarity": "rare", "biome": "reef", "bonusPct": 3, "template": "fin", "palette": { "body": "#d84315", "accent": "#ffe0b2", "pattern": "stripes" } },
-  { "id": 12, "name": "Mandarinfish", "rarity": "epic", "biome": "reef", "bonusPct": 5, "template": "long", "palette": { "body": "#1de9b6", "accent": "#ff6d00", "pattern": "dots" } },
-  { "id": 13, "name": "Betta", "rarity": "epic", "biome": "reef", "bonusPct": 5, "template": "fin", "palette": { "body": "#d500f9", "accent": "#ff80ab" } },
-  { "id": 14, "name": "Discus", "rarity": "epic", "biome": "reef", "bonusPct": 5, "template": "round", "palette": { "body": "#00b8d4", "accent": "#ffab40", "pattern": "stripes" } },
-  { "id": 15, "name": "Golden Koi", "rarity": "legendary", "biome": "reef", "bonusPct": 5, "template": "long", "palette": { "body": "#ffc107", "accent": "#ffffff", "pattern": "dots" } }
+  {
+    "id": 0,
+    "name": "Clownfish",
+    "rarity": "common",
+    "biome": "reef",
+    "bonusPct": 0,
+    "template": "round",
+    "palette": {
+      "body": "#ff7043",
+      "accent": "#ffffff",
+      "pattern": "stripes"
+    },
+    "reaction": "wiggle"
+  },
+  {
+    "id": 1,
+    "name": "Blue Tang",
+    "rarity": "common",
+    "biome": "reef",
+    "bonusPct": 0,
+    "template": "flat",
+    "palette": {
+      "body": "#2979ff",
+      "accent": "#ffeb3b"
+    },
+    "reaction": "dive"
+  },
+  {
+    "id": 2,
+    "name": "Yellow Tang",
+    "rarity": "common",
+    "biome": "reef",
+    "bonusPct": 0,
+    "template": "flat",
+    "palette": {
+      "body": "#ffd600",
+      "accent": "#fff59d"
+    },
+    "reaction": "dive"
+  },
+  {
+    "id": 3,
+    "name": "Guppy",
+    "rarity": "common",
+    "biome": "reef",
+    "bonusPct": 0,
+    "template": "round",
+    "palette": {
+      "body": "#26c6da",
+      "accent": "#ec407a",
+      "pattern": "dots"
+    },
+    "reaction": "wiggle"
+  },
+  {
+    "id": 4,
+    "name": "Neon Tetra",
+    "rarity": "common",
+    "biome": "reef",
+    "bonusPct": 0,
+    "template": "long",
+    "palette": {
+      "body": "#29b6f6",
+      "accent": "#ff1744",
+      "pattern": "stripes"
+    },
+    "reaction": "wiggle"
+  },
+  {
+    "id": 5,
+    "name": "Goldfish",
+    "rarity": "common",
+    "biome": "reef",
+    "bonusPct": 0,
+    "template": "round",
+    "palette": {
+      "body": "#ffa000",
+      "accent": "#ffe082"
+    },
+    "reaction": "bubbles"
+  },
+  {
+    "id": 6,
+    "name": "Damselfish",
+    "rarity": "common",
+    "biome": "reef",
+    "bonusPct": 0,
+    "template": "round",
+    "palette": {
+      "body": "#5c6bc0",
+      "accent": "#c5cae9"
+    },
+    "reaction": "wiggle"
+  },
+  {
+    "id": 7,
+    "name": "Minnow",
+    "rarity": "common",
+    "biome": "reef",
+    "bonusPct": 0,
+    "template": "long",
+    "palette": {
+      "body": "#90a4ae",
+      "accent": "#eceff1"
+    },
+    "reaction": "wiggle"
+  },
+  {
+    "id": 8,
+    "name": "Angelfish",
+    "rarity": "rare",
+    "biome": "reef",
+    "bonusPct": 0,
+    "template": "fin",
+    "palette": {
+      "body": "#fdd835",
+      "accent": "#212121",
+      "pattern": "stripes"
+    },
+    "reaction": "dive"
+  },
+  {
+    "id": 9,
+    "name": "Butterflyfish",
+    "rarity": "rare",
+    "biome": "reef",
+    "bonusPct": 0,
+    "template": "flat",
+    "palette": {
+      "body": "#fff176",
+      "accent": "#212121",
+      "pattern": "dots"
+    },
+    "reaction": "dive"
+  },
+  {
+    "id": 10,
+    "name": "Moorish Idol",
+    "rarity": "rare",
+    "biome": "reef",
+    "bonusPct": 0,
+    "template": "fin",
+    "palette": {
+      "body": "#fafafa",
+      "accent": "#ffca28",
+      "pattern": "stripes"
+    },
+    "reaction": "dive"
+  },
+  {
+    "id": 11,
+    "name": "Lionfish",
+    "rarity": "rare",
+    "biome": "reef",
+    "bonusPct": 0,
+    "template": "fin",
+    "palette": {
+      "body": "#d84315",
+      "accent": "#ffe0b2",
+      "pattern": "stripes"
+    },
+    "reaction": "bubbles"
+  },
+  {
+    "id": 12,
+    "name": "Mandarinfish",
+    "rarity": "epic",
+    "biome": "reef",
+    "bonusPct": 0,
+    "template": "long",
+    "palette": {
+      "body": "#1de9b6",
+      "accent": "#ff6d00",
+      "pattern": "dots"
+    },
+    "reaction": "dive"
+  },
+  {
+    "id": 13,
+    "name": "Betta",
+    "rarity": "epic",
+    "biome": "reef",
+    "bonusPct": 0,
+    "template": "fin",
+    "palette": {
+      "body": "#d500f9",
+      "accent": "#ff80ab"
+    },
+    "reaction": "bubbles"
+  },
+  {
+    "id": 14,
+    "name": "Discus",
+    "rarity": "epic",
+    "biome": "reef",
+    "bonusPct": 0,
+    "template": "round",
+    "palette": {
+      "body": "#00b8d4",
+      "accent": "#ffab40",
+      "pattern": "stripes"
+    },
+    "reaction": "bubbles"
+  },
+  {
+    "id": 15,
+    "name": "Golden Koi",
+    "rarity": "legendary",
+    "biome": "reef",
+    "bonusPct": 0,
+    "template": "long",
+    "palette": {
+      "body": "#ffc107",
+      "accent": "#ffffff",
+      "pattern": "dots"
+    },
+    "reaction": "dive"
+  },
+  {
+    "id": 16,
+    "name": "Seahorse",
+    "rarity": "legendary",
+    "biome": "reef",
+    "bonusPct": 0,
+    "storeOnly": true,
+    "template": "round",
+    "palette": {
+      "body": "#ffbe1f",
+      "accent": "#fff1bd"
+    },
+    "reaction": "bubbles"
+  },
+  {
+    "id": 17,
+    "name": "Starfish",
+    "rarity": "legendary",
+    "biome": "reef",
+    "bonusPct": 0,
+    "storeOnly": true,
+    "template": "round",
+    "palette": {
+      "body": "#ff5c9d",
+      "accent": "#fff0c4"
+    },
+    "reaction": "spin"
+  },
+  {
+    "id": 18,
+    "name": "Shrimp",
+    "rarity": "legendary",
+    "biome": "reef",
+    "bonusPct": 0,
+    "storeOnly": true,
+    "template": "round",
+    "palette": {
+      "body": "#ff5a3c",
+      "accent": "#fff3e8"
+    },
+    "reaction": "wiggle"
+  },
+  {
+    "id": 19,
+    "name": "Dragon Arowana",
+    "rarity": "legendary",
+    "biome": "reef",
+    "bonusPct": 0,
+    "template": "long",
+    "palette": {
+      "body": "#169c9a",
+      "accent": "#ffd54f",
+      "pattern": "dots"
+    },
+    "reaction": "dive"
+  }
 ]

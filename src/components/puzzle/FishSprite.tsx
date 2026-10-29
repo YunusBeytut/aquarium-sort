@@ -1,5 +1,5 @@
 import { memo, useEffect, useMemo } from 'react';
-import { View } from 'react-native';
+import { Image, type ImageSourcePropType, View } from 'react-native';
 import Animated, {
   Easing,
   cancelAnimation,
@@ -14,6 +14,7 @@ import Svg, { Circle, ClipPath, Defs, Ellipse, G, Path, Rect } from 'react-nativ
 import fishData from '../../data/fish.json';
 import { useGameStore } from '@/store/gameStore';
 import { ART, tailPath as artTail, tailRays } from './FishArt';
+import { FISH_IMAGES } from './fishImages';
 
 type Template = 'round' | 'long' | 'flat' | 'fin';
 
@@ -23,11 +24,16 @@ type FishDef = {
   rarity: string;
   biome: string;
   bonusPct: number;
+  storeOnly?: boolean; // true: normal düşme havuzunda değil, yalnızca mağazadan alınır
   template: Template;
   palette: { body: string; accent: string; pattern?: 'stripes' | 'dots' };
 };
 
 const FISH = fishData as unknown as FishDef[];
+
+// true: kuyruk animasyonu istenmeyen yerlerde (tail={false}: bulmaca, ana ekran) hazır resim kullanılır.
+// false: her yerde eski SVG çizimi. Resim görünümünü beğenmezsen tek satırla geri dönersin.
+const USE_BITMAP = true;
 
 type Spec = {
   cx: number;
@@ -109,7 +115,7 @@ type Props = {
   markOwned?: boolean;
 };
 
-function FishSpriteBase({
+function FishSpriteSvg({
   id,
   width = 40,
   animated = true,
@@ -123,7 +129,7 @@ function FishSpriteBase({
   // Boolean seçici: yalnızca sahiplik değişince yeniden çizilir.
   const owned = useGameStore((s) => markOwned && (s.ownedFish[def.id] ?? 0) > 0);
   const spec = SPECS[def.template];
-  const art = ART[def.id]; // el çizimi türler (0-11); yoksa eski şablon çizimi
+  const art = ART[def.id]; // el çizimi türler (0-11 ve mağaza türleri 16-18); yoksa eski şablon çizimi
   const ts = art?.tail; // worklet'e yalnızca düz veri girsin, JSX değil
   const { body, accent, pattern } = def.palette;
   const isFin = def.template === 'fin';
@@ -188,15 +194,18 @@ function FishSpriteBase({
       >
         <Svg width={width} height={(width * 2) / 3} viewBox="0 0 60 40">
           <Defs>{art.defs}</Defs>
-          <AnimatedPath
-            animatedProps={tail ? tailProps : undefined}
-            d={artTail(tl, 0)}
-            fill={tl.fill}
-            stroke={tl.stroke}
-            strokeWidth={0.8}
-            strokeLinejoin="round"
-            opacity={tl.opacity ?? 1}
-          />
+          {/* Kuyruğu olmayan türlerde (deniz yıldızı) opacity 0 olur: görünmez path'i boşuna animasyonlama */}
+          {(tl.opacity ?? 1) > 0 ? (
+            <AnimatedPath
+              animatedProps={tail ? tailProps : undefined}
+              d={artTail(tl, 0)}
+              fill={tl.fill}
+              stroke={tl.stroke}
+              strokeWidth={0.8}
+              strokeLinejoin="round"
+              opacity={tl.opacity ?? 1}
+            />
+          ) : null}
           {tl.rays ? (
             <AnimatedPath
               animatedProps={tail ? rayProps : undefined}
@@ -283,6 +292,76 @@ function FishSpriteBase({
       {owned && <OwnedStar size={starSize} />}
     </Animated.View>
   );
+}
+
+// Resim modu: sallanma, lift ve flip animasyonu SVG sürümüyle birebir aynı koddur,
+// yalnızca içerik SVG yerine önceden çizilmiş resimdir. Kuyruk animasyonu yoktur (tail={false}).
+function FishSpriteBitmap({
+  id,
+  width = 40,
+  animated = true,
+  phase,
+  lifted = false,
+  flip = false,
+  markOwned = false,
+  source,
+}: Props & { source: ImageSourcePropType }) {
+  const def = FISH[((id % FISH.length) + FISH.length) % FISH.length];
+  const owned = useGameStore((s) => markOwned && (s.ownedFish[def.id] ?? 0) > 0);
+  const ph = phase ?? (id * 1.7) % 6.28;
+  const duration = 1200 + (id % 5) * 140;
+
+  const t = useSharedValue(0);
+  const lift = useSharedValue(0);
+
+  useEffect(() => {
+    if (!animated) {
+      cancelAnimation(t);
+      t.value = 0;
+      return;
+    }
+    t.value = 0;
+    t.value = withRepeat(withTiming(1, { duration, easing: Easing.linear }), -1, false);
+    return () => cancelAnimation(t);
+  }, [animated, duration, t]);
+
+  useEffect(() => {
+    lift.value = withSpring(lifted ? -9 : 0, { damping: 12, stiffness: 220 });
+  }, [lifted, lift]);
+
+  const wrapStyle = useAnimatedStyle(() => {
+    const a = t.value * Math.PI * 2 + ph;
+    return {
+      transform: [
+        { translateY: lift.value + Math.sin(a + 1.2) * 1.2 },
+        { rotate: `${Math.sin(a) * 3}deg` },
+        { scaleX: flip ? -1 : 1 },
+      ],
+    };
+  });
+
+  const height = (width * 2) / 3;
+  const starSize = Math.max(10, width * 0.26);
+
+  return (
+    <Animated.View
+      pointerEvents="none"
+      renderToHardwareTextureAndroid
+      style={[{ width, height }, wrapStyle]}
+    >
+      {/* fadeDuration=0: Android'de resmin 300 ms'lik belirme efektini kapatır */}
+      <Image source={source} fadeDuration={0} resizeMode="stretch" style={{ width, height }} />
+      {owned && <OwnedStar size={starSize} />}
+    </Animated.View>
+  );
+}
+
+// Resmi hazır olan balık (tail={false}) resimle, diğerleri SVG ile çizilir.
+function FishSpriteBase(props: Props) {
+  const { id, tail = true } = props;
+  const def = FISH[((id % FISH.length) + FISH.length) % FISH.length];
+  const source = USE_BITMAP && !tail ? FISH_IMAGES[def.id] : undefined;
+  return source ? <FishSpriteBitmap {...props} source={source} /> : <FishSpriteSvg {...props} />;
 }
 
 export const FishSprite = memo(FishSpriteBase);

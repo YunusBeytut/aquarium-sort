@@ -1,4 +1,5 @@
 import { Jars, isJarUniformFull, topGroupSize } from './rules';
+import fishJson from '../data/fish.json';
 import { solve } from './solver';
 
 export type Difficulty = 'easy' | 'mid' | 'hard' | 'boss';
@@ -190,8 +191,13 @@ function pickHidden(jars: Jars, count: number, rng: () => number): number[] {
 const MAX_ATTEMPTS = 300;
 const SOLVER_NODE_LIMIT = 40000;
 
-function defaultPool(config: LevelConfig): number[] {
-  return Array.from({ length: Math.max(config.types, 14) }, (_, i) => i);
+// Bulmaca havuzu: mağazaya özel olmayan tüm balıklar (fish.json'a eklenen yeni balık kendiliğinden girer).
+const PUZZLE_FISH_IDS = (fishJson as { id: number; storeOnly?: boolean }[])
+  .filter((f) => !f.storeOnly)
+  .map((f) => f.id);
+
+function defaultPool(_config: LevelConfig): number[] {
+  return PUZZLE_FISH_IDS;
 }
 
 // Tek bir üretim denemesi. Başarısızsa null.

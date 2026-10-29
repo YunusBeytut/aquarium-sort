@@ -1,22 +1,29 @@
+import * as Haptics from 'expo-haptics';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, InteractionManager, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
+import { InteractionManager, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   cancelAnimation,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
   withSequence,
+  withSpring,
   withTiming,
 } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Svg, { Path } from 'react-native-svg';
 
-import { Board, type Flight } from '@/components/puzzle/Board';
+import { SoundManager } from '@/audio/SoundManager';
+import { AdBanner } from '@/components/AdBanner';
+import { Board, type Flight, type Guide } from '@/components/puzzle/Board';
 import { StarIcon } from '@/components/puzzle/FishSprite';
 import { HelperBar } from '@/components/puzzle/HelperBar';
 import { PuzzleBackground } from '@/components/puzzle/PuzzleBackground';
 import { PlayButton } from '@/components/ui/HomeHud';
-import { getUnlockedFish } from '@/data';
+import { FISH } from '@/data';
+import { pickSkin } from '@/game/skin';
 import '@/game/bakedLevels';
 import { loadLevel, peekLevel, prefetchLevel, type GeneratedLevel } from '@/game/levelGenerator';
 import { bonusPercent, type RewardResult } from '@/game/rewards';
@@ -29,34 +36,107 @@ import {
   undoMove,
 } from '@/game/rules';
 import { getHint } from '@/game/solver';
+import {
+  TUTORIAL_HELPERS_FROM_LEVEL,
+  TUTORIAL_IDLE_MS,
+  TUTORIAL_LAST_LEVEL,
+} from '@/game/tutorialLevels';
+import { AdManager } from '@/services/ads';
+import { Analytics } from '@/services/analytics';
+import { FishLoader } from '@/components/ui/FishLoader';
+import { BoosterRefillModal } from '@/components/puzzle/BoosterRefillModal';
+import { BOOSTER_AD_REWARD, BOOSTER_PRICE } from '@/game/economy';
 import { useGameStore } from '@/store/gameStore';
 
 const UNDO_PER_LEVEL = 3;
 const EXTRA_JAR_PER_LEVEL = 1;
 
-// i18n kurulunca bu nesne dil dosyalarına taşınacak.
-const TEXT = {
-  home: '‹ Ana ekran',
-  level: (n: number) => `Level ${n}`,
-  moves: (n: number) => `Hamle: ${n}`,
-  stuck: 'Geçerli hamle kalmadı. Geri al, ekstra kavanoz veya yeniden dene.',
-  bossDone: 'Boss level tamamlandı!',
-  levelDone: (n: number) => `Level ${n} tamamlandı!`,
-  solvedIn: (n: number) => `${n} hamlede çözdün`,
-  pearls: (n: number) => `+${n} inci`,
-  bonus: (n: number) => `Balık bonusu: +${n}%`,
-  hiddenBonus: (n: number) => `Gizli balık bonusu: +${n}%`,
-  eggRare: '+1 Nadir yumurta',
-  eggNormal: '+1 Normal yumurta',
-  noReward: 'Bu leveli daha önce tamamlamıştın, ödül yok.',
-  next: 'Devam',
-  homeLink: 'Ana ekran',
-  loadFailed: 'Level yüklenemedi',
-  levelInfo: (owned: number, total: number, bonus: number) =>
-    `${owned}/${total} balığın sende` + (bonus > 0 ? ` · bonus +${bonus}%` : ''),
-  levelInfoNone: 'Bu leveldeki balıklar henüz sende değil',
-  helpers: { undo: 'Geri al', extraJar: 'Kavanoz', hint: 'İpucu', restart: 'Yeniden' },
+// ---------------------------------------------------------------------------
+// Üst çubuk: alttaki HelperBar butonlarıyla aynı "kalın dudaklı" stil
+// ---------------------------------------------------------------------------
+
+const HEAD_ICON_COLOR = '#06304d';
+const HEAD_FACE_H = 44;
+const HEAD_LIP = 5;
+
+const HOME_ICON = ['M3 11 L12 4 L21 11', 'M6 9.5 V20 H18 V9.5'];
+
+function HeadIcon({ d, size = 20 }: { d: string[]; size?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24">
+      {d.map((p, i) => (
+        <Path
+          key={i}
+          d={p}
+          stroke={HEAD_ICON_COLOR}
+          strokeWidth={2.6}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          fill="none"
+        />
+      ))}
+    </Svg>
+  );
+}
+
+type HeadChipProps = {
+  label: string;
+  face: string;
+  lip: string;
+  edge: string;
+  icon?: string[];
+  big?: boolean;
+  width?: number;
+  onPress?: () => void;
 };
+
+// onPress verilirse basılabilir buton, verilmezse yalnızca bilgi etiketi.
+function HeadChip({ label, face, lip, edge, icon, big, width, onPress }: HeadChipProps) {
+  const pressed = useSharedValue(0);
+  const faceStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: pressed.value * (HEAD_LIP - 2) }],
+  }));
+
+  const content = (
+    <>
+      <View style={[styles.headLip, { backgroundColor: lip }]} />
+      <Animated.View
+        style={[styles.headFace, { backgroundColor: face, borderColor: edge }, faceStyle]}
+      >
+        {icon && <HeadIcon d={icon} />}
+        <Text style={[styles.headLabel, big && styles.headLabelBig]} numberOfLines={1}>
+          {label}
+        </Text>
+      </Animated.View>
+    </>
+  );
+
+  if (!onPress) {
+    return (
+      <View pointerEvents="none" style={[styles.headSlot, width !== undefined && { width }]}>
+        {content}
+      </View>
+    );
+  }
+
+  return (
+    <Pressable
+      onPress={onPress}
+      onPressIn={() => {
+        pressed.value = withTiming(1, { duration: 60 });
+      }}
+      onPressOut={() => {
+        pressed.value = withSpring(0, { damping: 12, stiffness: 300 });
+      }}
+      hitSlop={6}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      style={[styles.headSlot, width !== undefined && { width }]}
+    >
+      {content}
+    </Pressable>
+  );
+}
 
 // Level başında belirir, birkaç saniye sonra kaybolur.
 function LevelInfo({ text }: { text: string }) {
@@ -93,6 +173,7 @@ export default function PlayScreen() {
 // Level hazırsa (baked ya da prefetch edilmişse) anında açılır. Değilse arka planda üretilirken
 // arka plan ve yükleme göstergesi görünür; ekran geçişi JS thread'i kilitlenmediği için takılmaz.
 function LevelLoader({ level }: { level: number }) {
+  const { t } = useTranslation();
   const router = useRouter();
   const [lv, setLv] = useState<GeneratedLevel | null>(() => peekLevel(level));
   const [failed, setFailed] = useState(false);
@@ -122,13 +203,13 @@ function LevelLoader({ level }: { level: number }) {
         <View style={styles.center}>
           {failed ? (
             <>
-              <Text style={styles.stuck}>{TEXT.loadFailed}</Text>
+              <Text style={styles.stuck}>{t('play.loadFailed')}</Text>
               <Pressable onPress={() => router.replace('/')} hitSlop={10}>
-                <Text style={styles.cardLink}>{TEXT.homeLink}</Text>
+                <Text style={styles.cardLink}>{t('play.homeLink')}</Text>
               </Pressable>
             </>
           ) : (
-            <ActivityIndicator size="large" color="#ffffff" />
+            <FishLoader />
           )}
         </View>
       </SafeAreaView>
@@ -137,12 +218,40 @@ function LevelLoader({ level }: { level: number }) {
 }
 
 function LevelPlay({ level, lv }: { level: number; lv: GeneratedLevel }) {
+  const { t } = useTranslation();
   const router = useRouter();
+  const helperLabels = {
+    undo: t('play.helpers.undo'),
+    extraJar: t('play.helpers.extraJar'),
+    hint: t('play.helpers.hint'),
+    restart: t('play.helpers.restart'),
+  };
   const completeLevel = useGameStore((s) => s.completeLevel);
   const ownedFish = useGameStore((s) => s.ownedFish);
   const currentLevel = useGameStore((s) => s.currentLevel);
+  const hapticsEnabled = useGameStore((s) => s.settings.haptics);
+  const tutorialDone = useGameStore((s) => s.tutorialDone);
+  const boosters = useGameStore((s) => s.boosters);
+  const pearls = useGameStore((s) => s.pearls);
+  const spendBooster = useGameStore((s) => s.spendBooster);
+  const addBooster = useGameStore((s) => s.addBooster);
+  const buyBooster = useGameStore((s) => s.buyBooster);
 
   const capacity = lv.capacity;
+
+  const startedAt = useRef(Date.now());
+  const secs = () => Math.round((Date.now() - startedAt.current) / 1000);
+
+  // Öğretici: ilk levellerde yazısız el animasyonu yol gösterir.
+  const tutorialActive = !tutorialDone && level <= TUTORIAL_LAST_LEVEL;
+  // Level 1-2'de alttaki yardımcı düğmeler görünmez, oyuncu yalnızca kavanozlara odaklanır.
+  const hideHelpers = tutorialActive && level < TUTORIAL_HELPERS_FROM_LEVEL;
+
+  useEffect(() => {
+    Analytics.levelStart(level);
+    if (tutorialActive) Analytics.tutorialStep(level, 'tutorial_level');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Sonraki level, bu level oynanırken arka planda hazırlanır (geçişte bekleme olmasın).
   // Tahta açılışıyla yarışmasın diye biraz gecikmeyle başlar.
@@ -157,15 +266,27 @@ function LevelPlay({ level, lv }: { level: number; lv: GeneratedLevel }) {
     };
   }, [level]);
 
+  // Ses dosyaları ilk açılışta bir kez yüklenir (tekrar çağrılması zararsız).
+  useEffect(() => {
+    SoundManager.init();
+  }, []);
+
   // Level başındaki bilgi: bu leveldeki balıklardan kaçı sende, toplam ödül bonusu.
   // Level açılırken bir kez hesaplanır.
   const info = useMemo(() => {
     const ids = Array.from(new Set(lv.jars.flat()));
     const owned = ids.filter((id) => (ownedFish[id] ?? 0) > 0).length;
-    const bonus = bonusPercent(ownedFish, getUnlockedFish(currentLevel));
+    const bonus = bonusPercent(ownedFish, FISH);
     return { owned, total: ids.length, bonus };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lv]);
+
+  // Sahip olunan özel canlılar bazı levellerde görünüm olarak çıkar (öğreticide hayır).
+  const skin = useMemo(
+    () => (tutorialActive ? undefined : pickSkin(level, Array.from(new Set(lv.jars.flat())), ownedFish)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [lv]
+  );
 
   const [jars, setJars] = useState<number[][]>(lv.jars);
   // Her kavanozda alttaki kaç balığın gizli olduğu (oyuncu körlemesine oynar).
@@ -173,19 +294,30 @@ function LevelPlay({ level, lv }: { level: number; lv: GeneratedLevel }) {
   const [selected, setSelected] = useState<number | null>(null);
   // Geri alınca gizli durum da eski haline dönsün diye hamleyle birlikte saklanır.
   const [history, setHistory] = useState<{ move: Move; hidden: number[] }[]>([]);
-  const [undoLeft, setUndoLeft] = useState(UNDO_PER_LEVEL);
-  const [extraJarLeft, setExtraJarLeft] = useState(EXTRA_JAR_PER_LEVEL);
+  // Haklar kalıcı (store). Öğreticide hak harcanmaz.
+  const undoLeft = tutorialActive ? UNDO_PER_LEVEL : boosters.undo;
+  const extraJarLeft = tutorialActive ? EXTRA_JAR_PER_LEVEL : boosters.extraJar;
+  const hintLeft = tutorialActive ? 3 : boosters.hint;
+  const [refill, setRefill] = useState<'undo' | 'extraJar' | 'hint' | null>(null);
+  const [refillNotice, setRefillNotice] = useState<string | null>(null);
   const [hint, setHint] = useState<{ from: number; to: number } | null>(null);
   const [invalidJar, setInvalidJar] = useState<number | null>(null);
   const [moveCount, setMoveCount] = useState(0);
   const [reward, setReward] = useState<RewardResult | null>(null);
   const [flight, setFlight] = useState<Flight | null>(null);
   const flightSeq = useRef(0);
+  // Sadece aktif uçuşun bitişinde düşme sesi çalsın (restart sonrası eski uçuşlar ses çıkarmasın).
+  const activeFlightId = useRef<number | null>(null);
+  // Bu uçuş bir kavanozu tamamlıyorsa, balık inince "ding" çalınır.
+  const jarDingFlightId = useRef<number | null>(null);
   const invalidTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const rewardGiven = useRef(false);
+  const completeSoundPlayed = useRef(false);
   // Taşıma animasyonu sürerken yapılan dokunuşlar kaybolmaz, burada sıraya girer.
   const pressQueue = useRef<number[]>([]);
   const [boardKey, setBoardKey] = useState(0);
+  // Level/ana sayfa geçişinde ağır mount başlamadan önce yükleme ekranı çizilsin diye.
+  const [navigating, setNavigating] = useState(false);
 
   // Tahta, ilk kare çizildikten hemen sonra eklenir: üst çubuk ve arka plan anında görünür.
   // Tahtanın ağır kısmı (balıklar) zaten Board içinde kademeli çizilir.
@@ -203,21 +335,78 @@ function LevelPlay({ level, lv }: { level: number; lv: GeneratedLevel }) {
   // Son balık inmeden sonuç ekranı açılmasın
   const showResult = solved && !flight;
 
+  // Öğretici eli: oyuncu bir süre dokunmazsa çıkar, dokunur dokunmaz kaybolur.
+  // Level 1-2'de hızlı, level 3'te yalnızca oyuncu beklerse görünür.
+  const [guideOn, setGuideOn] = useState(false);
+  useEffect(() => {
+    setGuideOn(false);
+    if (!tutorialActive || solved || flight || stuck || !ready) return;
+    const [first, later] = TUTORIAL_IDLE_MS[level] ?? [4000, 4000];
+    const t = setTimeout(
+      () => setGuideOn(true),
+      moveCount === 0 && selected === null ? first : later
+    );
+    return () => clearTimeout(t);
+  }, [tutorialActive, solved, flight, stuck, ready, moveCount, selected, level, boardKey]);
+
+  // Gösterilecek hamle çözücüden gelir; oyuncu yanlış yola girse de el mevcut durumdan devam eder.
+  const guide = useMemo<Guide | null>(() => {
+    if (!guideOn) return null;
+    const move = getHint(jars, capacity);
+    if (!move) return null;
+    return {
+      from: move.from,
+      to: move.to,
+      phase: selected === move.from ? 'drop' : 'pick',
+    };
+  }, [guideOn, jars, capacity, selected]);
+
+  // Hamle kalmayınca yumuşak bir ses; son balığın damla sesinden sonra gelsin diye kısa gecikme.
+  useEffect(() => {
+    if (!stuck) return;
+    if (!tutorialActive) Analytics.levelFail(level, moveCount, secs());
+    const t = setTimeout(() => SoundManager.play('noMoves'), 350);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stuck]);
+
   // Level çözülünce ödül tam bir kez verilir
   useEffect(() => {
     if (solved && !rewardGiven.current) {
       rewardGiven.current = true;
+      Analytics.levelComplete(level, moveCount, secs());
+      if (tutorialActive && level >= TUTORIAL_LAST_LEVEL) Analytics.tutorialComplete();
       setReward(completeLevel(level, moveCount, lv.hidden.some((h) => h > 0)));
     }
   }, [solved, level, moveCount, completeLevel, lv]);
 
+  // Level tamamlama sesi: son balık indikten (sonuç kartı açılırken) hemen sonra, damla sesiyle üst üste binmesin diye kısa gecikmeyle.
+  useEffect(() => {
+    if (!showResult || completeSoundPlayed.current) return;
+    const t = setTimeout(() => {
+      completeSoundPlayed.current = true;
+      SoundManager.play('levelComplete');
+    }, 250);
+    return () => clearTimeout(t);
+  }, [showResult]);
+
   const flashInvalid = useCallback((index: number) => {
+    SoundManager.play('invalidMove');
     setInvalidJar(index);
     if (invalidTimer.current) clearTimeout(invalidTimer.current);
     invalidTimer.current = setTimeout(() => setInvalidJar(null), 350);
   }, []);
 
   const handleFlightDone = useCallback((id: number) => {
+    if (activeFlightId.current === id) {
+      activeFlightId.current = null;
+      SoundManager.play('fishLand');
+      if (jarDingFlightId.current === id) {
+        jarDingFlightId.current = null;
+        // Damla sesiyle üst üste binmesin diye kısa gecikme.
+        setTimeout(() => SoundManager.play('jarComplete'), 130);
+      }
+    }
     setFlight((f) => (f && f.id === id ? null : f));
   }, []);
 
@@ -232,6 +421,8 @@ function LevelPlay({ level, lv }: { level: number; lv: GeneratedLevel }) {
 
     if (selected === null) {
       if (jars[index].length === 0) return;
+      // Seçimde çok hafif titreşim (Ayarlar > Titreşim kapalıysa çalışmaz).
+      if (hapticsEnabled) void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       setSelected(index);
       return;
     }
@@ -251,9 +442,20 @@ function LevelPlay({ level, lv }: { level: number; lv: GeneratedLevel }) {
     const fromJar = jars[selected];
     const toJar = jars[index];
     const count = result.jars[index].length - toJar.length;
+    const newHidden = revealAfterMove(result.jars, hidden, selected);
+    // Hedef kavanoz dolup tek tür balıkla tamamlandıysa (Board'daki "complete" görünümüyle aynı kural) ve level bitmediyse "ding".
+    // Level bittiğinde onun yerine level tamamlama sesi çalar.
+    const destJar = result.jars[index];
+    const completesJar =
+      destJar.length === capacity &&
+      destJar.every((f) => f === destJar[0]) &&
+      !isSolved(result.jars, capacity);
     if (count > 0) {
+      const flightId = ++flightSeq.current;
+      activeFlightId.current = flightId;
+      jarDingFlightId.current = completesJar ? flightId : null;
       setFlight({
-        id: ++flightSeq.current,
+        id: flightId,
         from: selected,
         to: index,
         count,
@@ -264,7 +466,7 @@ function LevelPlay({ level, lv }: { level: number; lv: GeneratedLevel }) {
     }
 
     setJars(result.jars);
-    setHidden(revealAfterMove(result.jars, hidden, selected));
+    setHidden(newHidden);
     setHistory((h) => [...h, { move: result.move, hidden }]);
     setMoveCount((c) => c + 1);
     setSelected(null);
@@ -278,29 +480,78 @@ function LevelPlay({ level, lv }: { level: number; lv: GeneratedLevel }) {
   });
 
   const handleUndo = () => {
-    if (solved || flight || undoLeft <= 0 || history.length === 0) return;
+    if (solved || flight || history.length === 0) return;
+    if (undoLeft <= 0) {
+      setRefillNotice(null);
+      setRefill('undo');
+      return;
+    }
+    if (!tutorialActive) spendBooster('undo');
     const last = history[history.length - 1];
+    SoundManager.play('helperUse');
     setJars(undoMove(jars, last.move));
     setHidden(last.hidden);
     setHistory(history.slice(0, -1));
-    setUndoLeft(undoLeft - 1);
     setSelected(null);
     setHint(null);
   };
 
   const handleExtraJar = () => {
-    if (solved || flight || extraJarLeft <= 0) return;
+    if (solved || flight) return;
+    if (extraJarLeft <= 0) {
+      setRefillNotice(null);
+      setRefill('extraJar');
+      return;
+    }
+    if (!tutorialActive) spendBooster('extraJar');
+    SoundManager.play('helperUse');
     setJars([...jars, []]);
     setHidden([...hidden, 0]);
-    setExtraJarLeft(extraJarLeft - 1);
     setSelected(null);
     setHint(null);
   };
 
+  // Yenileme penceresi açılınca bir kez kaydedilir (reklam hazır mıydı bilgisiyle).
+  useEffect(() => {
+    if (refill) Analytics.refillShown(refill, AdManager.isRewardedReady);
+  }, [refill]);
+
+  const handleRefillWatch = async () => {
+    const kind = refill;
+    if (!kind) return;
+    Analytics.refillChoice(kind, 'watch');
+    const wasReady = AdManager.isRewardedReady;
+    const ok = await AdManager.showRewarded();
+    if (ok) {
+      Analytics.adShown('rewarded', `booster_${kind}`);
+      Analytics.adRewarded(`booster_${kind}`);
+      addBooster(kind, BOOSTER_AD_REWARD);
+      setRefill(null);
+    } else {
+      Analytics.adFailed(`booster_${kind}`, wasReady ? 'no_reward' : 'not_ready');
+      setRefillNotice(t('play.adFailed'));
+    }
+  };
+
+  const handleRefillBuy = () => {
+    const kind = refill;
+    if (kind && buyBooster(kind)) {
+      Analytics.refillChoice(kind, 'buy');
+      setRefill(null);
+    }
+  };
+
   const handleHint = () => {
     if (solved || flight) return;
+    if (hintLeft <= 0) {
+      setRefillNotice(null);
+      setRefill('hint');
+      return;
+    }
     const move = getHint(jars, capacity);
     if (move) {
+      if (!tutorialActive) spendBooster('hint');
+      SoundManager.play('helperUse');
       setHint({ from: move.from, to: move.to });
       setSelected(null);
     }
@@ -308,18 +559,27 @@ function LevelPlay({ level, lv }: { level: number; lv: GeneratedLevel }) {
 
   const handleRestart = () => {
     if (solved) return;
+    if (!tutorialActive) Analytics.levelRestart(level);
     pressQueue.current = [];
+    activeFlightId.current = null;
+    jarDingFlightId.current = null;
     setBoardKey((k) => k + 1); // tahtayı sıfırlar, süren görsel efektler de temizlenir
     setFlight(null);
     setJars(lv.jars);
     setHidden(lv.hidden);
     setSelected(null);
     setHistory([]);
-    setUndoLeft(UNDO_PER_LEVEL);
-    setExtraJarLeft(EXTRA_JAR_PER_LEVEL);
     setHint(null);
     setMoveCount(0);
   };
+
+  // Öğreticide hamle kalmazsa (yazı göstermeden) level kısa bir beklemeyle kendiliğinden yeniden başlar.
+  useEffect(() => {
+    if (!stuck || !tutorialActive) return;
+    const t = setTimeout(handleRestart, 1500);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stuck, tutorialActive]);
 
   // Ekran geçişi yapmadan aynı ekranda level'i değiştirir (gri geçiş ekranı olmaz).
   // PlayScreen'deki key, tüm state'i yeni level için sıfırlar.
@@ -327,27 +587,72 @@ function LevelPlay({ level, lv }: { level: number; lv: GeneratedLevel }) {
     router.setParams({ level: String(n) });
   };
 
+  // Sonuç kartındaki "Devam": sıra gelmişse geçiş reklamı gösterilir, ardından sonraki level açılır.
+  // Öğreticide reklam gösterilmez ve sayaç da işlemez.
+  const handleNext = () => {
+    if (navigating) return;
+    setNavigating(true);
+    // Yükleme ekranı bir kare çizilsin, sonra geçiş başlasın.
+    setTimeout(() => {
+      if (!tutorialActive) AdManager.maybeShowInterstitialAfterLevel();
+      goToLevel(level + 1);
+    }, 60);
+  };
+
+  const goHome = () => {
+    if (navigating) return;
+    setNavigating(true);
+    setTimeout(() => router.replace('/'), 60);
+  };
+
+  // Banner öğreticide görünmez.
+  const showBanner = !tutorialActive;
+
   return (
     <View style={styles.root}>
       <PuzzleBackground />
 
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
-          <Pressable onPress={() => router.replace('/')} hitSlop={10}>
-            <Text style={[styles.headerLink, styles.shadow]}>{TEXT.home}</Text>
-          </Pressable>
-          <Text style={[styles.title, styles.shadow]}>{TEXT.level(level)}</Text>
-          <Text style={[styles.moves, styles.shadow]}>{TEXT.moves(moveCount)}</Text>
+          <HeadChip
+            label={t('play.home')}
+            icon={HOME_ICON}
+            face="#9fb8d8"
+            lip="#5d7ba3"
+            edge="#c7d8ee"
+            width={HEAD_SIDE_W}
+            onPress={goHome}
+          />
+          <HeadChip
+            label={t('play.level', { n: level })}
+            face="#ffd54f"
+            lip="#c99a14"
+            edge="#ffe69a"
+            big
+          />
+          <HeadChip
+            label={t('play.moves', { n: moveCount })}
+            face="#58c8f2"
+            lip="#2584b0"
+            edge="#9be3fb"
+            width={HEAD_SIDE_W}
+          />
         </View>
 
         <View style={styles.infoRow}>
-          <LevelInfo
-            text={
-              info.owned > 0
-                ? TEXT.levelInfo(info.owned, info.total, info.bonus)
-                : TEXT.levelInfoNone
-            }
-          />
+          {!tutorialActive && (
+            <LevelInfo
+              text={
+                info.owned > 0
+                  ? t(info.bonus > 0 ? 'play.levelInfoBonus' : 'play.levelInfo', {
+                      owned: info.owned,
+                      total: info.total,
+                      bonus: info.bonus,
+                    })
+                  : t('play.levelInfoNone')
+              }
+            />
+          )}
         </View>
 
         <View style={styles.boardArea}>
@@ -358,70 +663,103 @@ function LevelPlay({ level, lv }: { level: number; lv: GeneratedLevel }) {
               hidden={hidden}
               capacity={capacity}
               selected={selected}
-              hint={hint}
+              hint={hint ?? (guide ? { from: guide.from, to: guide.to } : null)}
               invalidJar={invalidJar}
               flight={flight}
+              guide={guide}
+              skin={skin}
               onJarPress={handleJarPress}
               onFlightDone={handleFlightDone}
             />
           )}
         </View>
 
-        {stuck && <Text style={styles.stuck}>{TEXT.stuck}</Text>}
+        {stuck && !tutorialActive && <Text style={styles.stuck}>{t('play.stuck')}</Text>}
 
-        <View style={styles.footer}>
+        <View
+          style={[
+            styles.footer,
+            showBanner && styles.footerWithBanner,
+            hideHelpers && styles.footerHidden,
+          ]}
+          pointerEvents={hideHelpers ? 'none' : 'auto'}
+        >
           <HelperBar
             undoLeft={undoLeft}
             extraJarLeft={extraJarLeft}
+            hintLeft={hintLeft}
             canUndo={history.length > 0}
             onUndo={handleUndo}
             onExtraJar={handleExtraJar}
             onHint={handleHint}
             onRestart={handleRestart}
-            labels={TEXT.helpers}
+            labels={helperLabels}
           />
         </View>
+
+        <BoosterRefillModal
+          visible={refill !== null}
+          name={refill ? helperLabels[refill] : ''}
+          amount={BOOSTER_AD_REWARD}
+          price={BOOSTER_PRICE[refill ?? 'undo']}
+          pearls={pearls}
+          adReady={AdManager.isRewardedReady}
+          notice={refillNotice}
+          onWatch={handleRefillWatch}
+          onBuy={handleRefillBuy}
+          onClose={() => {
+            if (refill) Analytics.refillChoice(refill, 'close');
+            setRefill(null);
+          }}
+        />
+
+        {/* Skill butonlarının altında; nav bar boşluğunu SafeAreaView zaten bırakıyor. */}
+        {showBanner && <AdBanner />}
 
         {showResult && (
           <View style={styles.overlay}>
             <View style={styles.card}>
               <Text style={styles.cardTitle}>
-                {reward?.boss ? TEXT.bossDone : TEXT.levelDone(level)}
+                {reward?.boss ? t('play.bossDone') : t('play.levelDone', { n: level })}
               </Text>
-              <Text style={styles.cardText}>{TEXT.solvedIn(moveCount)}</Text>
+              <Text style={styles.cardText}>{t('play.solvedIn', { count: moveCount })}</Text>
 
               {reward ? (
                 <View style={styles.rewardBox}>
-                  <Text style={styles.rewardPearls}>{TEXT.pearls(reward.pearls)}</Text>
+                  <Text style={styles.rewardPearls}>{t('play.pearls', { count: reward.pearls })}</Text>
                   {reward.bonusPct > 0 && (
-                    <Text style={styles.rewardSub}>{TEXT.bonus(reward.bonusPct)}</Text>
+                    <Text style={styles.rewardSub}>{t('play.bonus', { n: reward.bonusPct })}</Text>
                   )}
                   {reward.hiddenBonusPct > 0 && (
-                    <Text style={styles.rewardSub}>{TEXT.hiddenBonus(reward.hiddenBonusPct)}</Text>
+                    <Text style={styles.rewardSub}>{t('play.hiddenBonus', { n: reward.hiddenBonusPct })}</Text>
                   )}
                   {reward.egg && (
                     <Text style={styles.rewardEgg}>
-                      {reward.egg === 'rare' ? TEXT.eggRare : TEXT.eggNormal}
+                      {reward.egg === 'rare' ? t('play.eggRare') : t('play.eggNormal')}
                     </Text>
                   )}
                 </View>
               ) : (
-                <Text style={styles.cardText}>{TEXT.noReward}</Text>
+                <Text style={styles.cardText}>{t('play.noReward')}</Text>
               )}
 
               <View style={styles.cardButton}>
-                <PlayButton title={TEXT.next} onPress={() => goToLevel(level + 1)} />
+                <PlayButton title={t('play.next')} onPress={handleNext} />
               </View>
-              <Pressable onPress={() => router.replace('/')} hitSlop={10}>
-                <Text style={styles.cardLink}>{TEXT.homeLink}</Text>
+              <Pressable onPress={goHome} hitSlop={10}>
+                <Text style={styles.cardLink}>{t('play.homeLink')}</Text>
               </Pressable>
             </View>
           </View>
         )}
       </SafeAreaView>
+
+      {navigating && <FishLoader fullscreen />}
     </View>
   );
 }
+
+const HEAD_SIDE_W = 104;
 
 const styles = StyleSheet.create({
   root: {
@@ -431,35 +769,44 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  shadow: {
-    textShadowColor: 'rgba(0,20,50,0.55)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 3,
-  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingHorizontal: 12,
+    paddingTop: 8,
+    paddingBottom: 4,
   },
-  headerLink: {
-    color: '#ffffff',
-    fontSize: 15,
-    fontWeight: '700',
-    minWidth: 90,
+  headSlot: {
+    height: HEAD_FACE_H + HEAD_LIP,
+    minWidth: 96,
   },
-  title: {
-    color: '#ffffff',
-    fontSize: 22,
+  headLip: {
+    position: 'absolute',
+    top: HEAD_LIP,
+    left: 0,
+    right: 0,
+    height: HEAD_FACE_H,
+    borderRadius: 16,
+  },
+  headFace: {
+    height: HEAD_FACE_H,
+    borderRadius: 16,
+    borderWidth: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+  },
+  headLabel: {
+    fontSize: 13,
     fontWeight: '800',
+    color: HEAD_ICON_COLOR,
   },
-  moves: {
-    color: '#ffffff',
-    fontSize: 14,
-    fontWeight: '600',
-    minWidth: 90,
-    textAlign: 'right',
+  headLabelBig: {
+    fontSize: 18,
+    fontWeight: '900',
   },
   infoRow: {
     height: 38,
@@ -506,6 +853,13 @@ const styles = StyleSheet.create({
   footer: {
     paddingTop: 10,
     paddingBottom: 18,
+  },
+  // Banner altta olduğu için skill butonlarının alt boşluğu kısılır.
+  footerWithBanner: {
+    paddingBottom: 8,
+  },
+  footerHidden: {
+    opacity: 0,
   },
   overlay: {
     position: 'absolute',

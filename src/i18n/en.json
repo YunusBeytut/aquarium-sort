@@ -1,1 +1,223 @@
-{}
+{
+  "common": {
+    "plusPercent": "+{{pct}}%"
+  },
+  "rarity": {
+    "common": "Common",
+    "rare": "Rare",
+    "epic": "Epic",
+    "legendary": "Legendary"
+  },
+  "tabs": {
+    "aquarium": "Aquarium",
+    "shop": "Shop",
+    "collection": "Collection",
+    "settings": "Settings"
+  },
+  "home": {
+    "play": "Play",
+    "level": "Level",
+    "eggs_one": "You have {{count}} egg, open it",
+    "eggs_other": "You have {{count}} eggs, open them",
+    "pearls": "Pearls",
+    "bonus": "Bonus",
+    "fish": "Fish",
+    "feed": "Feed · {{count}}",
+    "getFood": "Get food",
+    "emptyAquarium": "You don't have any fish yet. Play a level and open an egg."
+  },
+  "collection": {
+    "title": "Collection",
+    "bonus": "Bonus",
+    "all": "All",
+    "unknown": "???",
+    "emptyFilter": "No fish of this rarity yet.",
+    "specialTitle": "Special Creatures",
+    "specialSub": "Only available in the shop",
+    "special": "Special",
+    "inStore": "In shop",
+    "fish": "Fish",
+    "a11yOwned": "{{name}}, {{label}}",
+    "a11yBonus": ", {{pct}}% bonus",
+    "a11yLocked": "Not unlocked yet, {{label}}"
+  },
+  "settings": {
+    "title": "Settings",
+    "sound": "Sound",
+    "soundHint": "Game effects",
+    "music": "Music",
+    "musicHint": "Background music",
+    "haptics": "Vibration",
+    "hapticsHint": "Touch feedback",
+    "feedback": "Feedback",
+    "feedbackHint": "Share ideas, suggestions and bugs",
+    "privacy": "Privacy policy",
+    "privacyHint": "Read how we use your data",
+    "version": "Version {{v}}",
+    "levelsPlayed": "Levels played",
+    "totalMoves": "Total moves"
+  },
+  "shop": {
+    "title": "Shop",
+    "collection": "Collection",
+    "open": "Open",
+    "buy": "Buy",
+    "owned": "Owned: {{n}}",
+    "missing_one": "{{count}} pearl short",
+    "missing_other": "{{count}} pearls short",
+    "accessories": "Accessories",
+    "accessoriesHint": "Decorate your aquarium. Tap them to bring them to life.",
+    "use": "Use",
+    "remove": "Remove",
+    "backgrounds": "Backgrounds",
+    "backgroundsHint": "Pick the game screen background. Locked ones unlock automatically as you reach the level.",
+    "aquariumBackgrounds": "Aquarium Backgrounds",
+    "aquariumBackgroundsHint": "Only shown on the aquarium screen. Bought with pearls.",
+    "defaultBackground": "Default",
+    "select": "Select",
+    "selected": "Selected",
+    "shopFish": "Special Creatures",
+    "shopFishHint": "They don't hatch from eggs, only bought with pearls. They give no reward bonus and are added to your collection.",
+    "shopFishOwned": "Owned",
+    "unlockAt": "Unlocks at level {{n}}",
+    "locked": "Locked",
+    "a11yBuy": "Buy {{name}}, {{price}} pearls",
+    "egg": {
+      "normal": {
+        "name": "Normal egg",
+        "sub": "A surprise fish hatches inside"
+      },
+      "rare": {
+        "name": "Rare egg",
+        "sub": "An even more special surprise awaits you"
+      }
+    },
+    "food": {
+      "name": "Fish food",
+      "sub": "Tap a fish, then feed it. They love it!",
+      "stock": "In stock: {{count}}"
+    }
+  },
+  "daily": {
+    "title": "Daily Streak",
+    "streak": "{{n}} day streak",
+    "start": "Start your streak!",
+    "day": "Day {{n}}",
+    "claim": "Claim",
+    "claimed": "Come back tomorrow",
+    "close": "Close"
+  },
+  "cloud": {
+      "title": "Save your progress",
+      "hint": "Link your Google account to keep your progress on a new phone.",
+      "signedInAs": "Signed in as {{name}}",
+      "signIn": "Sign in with Google",
+      "signOut": "Sign out",
+      "deleteAccount": "Delete account",
+      "deleteTitle": "Delete account?",
+      "deleteBody": "Your cloud save and account will be deleted. Progress on this device stays.",
+      "delete": "Delete",
+      "cancel": "Cancel",
+      "error": "Something went wrong. Check your connection and try again.",
+      "conflictTitle": "Two saves found",
+      "conflictBody": "Cloud save: Level {{cloud}}\nThis device: Level {{local}}\n\nThe one you don't pick will be overwritten.",
+      "useCloud": "Use cloud save",
+      "useLocal": "Use this device",
+      "updateTitle": "Update needed",
+      "updateBody": "Your cloud save was made with a newer version. Update the game to sync."
+    },
+  "play": {
+    "home": "‹ Home",
+    "level": "Level {{n}}",
+    "moves": "Moves: {{n}}",
+    "stuck": "No valid moves left. Undo, add an extra jar or restart.",
+    "bossDone": "Boss level complete!",
+    "levelDone": "Level {{n}} complete!",
+    "solvedIn_one": "Solved in {{count}} move",
+    "solvedIn_other": "Solved in {{count}} moves",
+    "pearls_one": "+{{count}} pearl",
+    "pearls_other": "+{{count}} pearls",
+    "bonus": "Fish bonus: +{{n}}%",
+    "hiddenBonus": "Hidden fish bonus: +{{n}}%",
+    "eggRare": "+1 Rare egg",
+    "eggNormal": "+1 Normal egg",
+    "noReward": "You've already completed this level, no reward.",
+    "next": "Continue",
+    "homeLink": "Home",
+    "loadFailed": "Couldn't load level",
+    "levelInfo": "You have {{owned}}/{{total}} of these fish",
+    "levelInfoBonus": "You have {{owned}}/{{total}} of these fish · bonus +{{bonus}}%",
+    "levelInfoNone": "You don't have any fish from this level yet",
+    "adFailed": "Couldn't show the ad, try again in a moment.",
+    "helpers": {
+      "undo": "Undo",
+      "extraJar": "Jar",
+      "hint": "Hint",
+      "restart": "Restart"
+    }
+  },
+  "feedback": {
+    "title": "Feedback",
+    "subtitle": "Share an idea, a suggestion or a bug you ran into.",
+    "messagePlaceholder": "Your message...",
+    "emailPlaceholder": "Email (optional, if you want a reply)",
+    "send": "Send",
+    "sending": "Sending...",
+    "cancel": "Cancel",
+    "close": "Close",
+    "thanksTitle": "Thank you!",
+    "thanksBody": "Your message has reached us.",
+    "errorEmpty": "Please write a message.",
+    "errorEmail": "The email address doesn't look valid.",
+    "errorSend": "Couldn't send. Check your internet connection and try again.",
+    "privacyNote": "Your message and (if you entered one) your email are only used to reply to you and to improve the game."
+  },
+  "eggModal": {
+    "cracking": "Egg is cracking...",
+    "tapToSkip": "Tap to skip",
+    "isNew": "NEW!",
+    "duplicate": "Already in your collection",
+    "bonus": "bonus",
+    "great": "Great!",
+    "another": "Open another"
+  },
+  "iap": {
+    "title": "Pearl Packs",
+    "noAds": "Remove Ads",
+    "noAdsSub": "Play without ads",
+    "noAdsActive": "Ads are off",
+    "restore": "Restore purchases",
+    "thanks": "Thank you!",
+    "pending": "Payment is waiting for approval.",
+    "error": "Purchase couldn't be completed. Try again.",
+    "restored": "Your purchases have been checked.",
+    "restoreError": "Restore failed."
+  },
+  "refill": {
+    "title": "No {{name}} left",
+    "sub": "Earn more to keep going",
+    "watch": "Watch video  +{{amount}}",
+    "buy_one": "{{count}} pearl  +{{amount}}",
+    "buy_other": "{{count}} pearls  +{{amount}}",
+    "cancel": "Cancel"
+  },
+  "decor": {
+    "bg-50": "Ancient Columns",
+    "bg-100": "Sunken Ship",
+    "bg-150": "Lost City",
+    "bg-coral": "Coral Garden",
+    "bg-forest": "Forest",
+    "bg-glacier": "Glacier",
+    "bg-crystal": "Crystal Cave",
+    "acc-chest": "Treasure Chest",
+    "acc-clam": "Pearl Clam",
+    "acc-ship": "Shipwreck",
+    "acc-anchor": "Old Anchor",
+    "acc-skull": "Pirate Skull",
+    "aq-pirate": "Pirate Graveyard",
+    "aq-cute": "Cute Reef",
+    "aq-glacier": "Glacier Cave",
+    "aq-night": "Night"
+
+  }
+}

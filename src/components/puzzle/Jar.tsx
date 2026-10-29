@@ -1,6 +1,8 @@
-import { memo, useEffect, useRef } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
+  Easing,
+  type SharedValue,
   useAnimatedStyle,
   useSharedValue,
   withSequence,
@@ -29,6 +31,72 @@ const FISH_FADE_MS = 180;
 
 // Seçilince kavanozun ne kadar büyüyeceği. 1.05 = %5 (çok hafif). Daha belirgin istersen 1.08 yap.
 const SELECT_SCALE = 1.05;
+
+// Kavanoz tamamlanınca yükselen baloncuklar: x (kavanoz genişliğine oran), boyut, başlama gecikmesi (0-0.4), yükselme (kavanoz yüksekliğine oran).
+const BURST_MS = 2600;
+// Baloncuklar son balığın indiği kareden ayrı mount edilir (takılmayı önler).
+const BURST_START_DELAY_MS = 160;
+// Aynı anda çizilen baloncuk sayısı (BURST dizisinden ilk N tanesi).
+const BURST_COUNT = 10;
+const BURST = [
+  { x: 0.12, s: 7, d: 0.0, r: 1.4 },
+  { x: 0.3, s: 11, d: 0.04, r: 1.7 },
+  { x: 0.5, s: 6, d: 0.08, r: 1.3 },
+  { x: 0.7, s: 10, d: 0.02, r: 1.8 },
+  { x: 0.86, s: 8, d: 0.1, r: 1.5 },
+  { x: 0.2, s: 5, d: 0.16, r: 1.6 },
+  { x: 0.42, s: 12, d: 0.12, r: 1.9 },
+  { x: 0.62, s: 7, d: 0.2, r: 1.4 },
+  { x: 0.78, s: 5, d: 0.22, r: 1.7 },
+  { x: 0.36, s: 8, d: 0.26, r: 1.5 },
+  { x: 0.56, s: 6, d: 0.3, r: 1.8 },
+  { x: 0.9, s: 9, d: 0.34, r: 1.5 },
+  { x: 0.08, s: 6, d: 0.14, r: 1.6 },
+  { x: 0.46, s: 9, d: 0.38, r: 1.7 },
+  { x: 0.68, s: 5, d: 0.06, r: 1.9 },
+  { x: 0.24, s: 10, d: 0.32, r: 1.4 },
+  { x: 0.82, s: 6, d: 0.28, r: 1.6 },
+  { x: 0.52, s: 7, d: 0.18, r: 2.0 },
+];
+
+function BurstBubble({
+  burst,
+  x,
+  size,
+  delay,
+  rise,
+  jarH,
+}: {
+  burst: SharedValue<number>;
+  x: number;
+  size: number;
+  delay: number;
+  rise: number;
+  jarH: number;
+}) {
+  const style = useAnimatedStyle(() => {
+    const t = Math.min(1, Math.max(0, (burst.value - delay) / 0.6));
+    return {
+      // hızlı belirir, uzun süre görünür kalır, sonda söner
+      opacity: Math.min(1, t * 8, (1 - t) * 3.5) * 0.9,
+      transform: [
+        { translateY: -t * rise * jarH },
+        { translateX: Math.sin(t * 7 + x * 10) * 5 },
+        { scale: 0.6 + 0.5 * t },
+      ],
+    };
+  });
+  return (
+    <Animated.View
+      pointerEvents="none"
+      style={[
+        styles.burstBubble,
+        { left: x * JAR_W - size / 2, top: JAR_MARGIN_TOP + jarH - 14 - size, width: size, height: size, borderRadius: size / 2 },
+        style,
+      ]}
+    />
+  );
+}
 
 export function jarHeight(capacity: number): number {
   return capacity * (BALL_SIZE + GAP) + GAP * 2;
@@ -92,7 +160,9 @@ function JarBase({
   const pulse = useSharedValue(1);
   const selectScale = useSharedValue(1);
   const cap = useSharedValue(0);
+  const burst = useSharedValue(1);
   const wasComplete = useRef(false);
+  const [burstOn, setBurstOn] = useState(false);
   const fishFade = useSharedValue(showFish ? 1 : 0);
 
   useEffect(() => {
@@ -114,14 +184,28 @@ function JarBase({
   }, [selected, selectScale]);
 
   useEffect(() => {
+    let startTimer: ReturnType<typeof setTimeout> | undefined;
+    let endTimer: ReturnType<typeof setTimeout> | undefined;
     if (complete && !wasComplete.current) {
       pulse.value = withSequence(withTiming(1.1, { duration: 130 }), withSpring(1, { damping: 8 }));
       cap.value = withSpring(1, { damping: 9, stiffness: 180 });
+      // Baloncuklar, son balığın indiği kareden ayrı mount edilir.
+      startTimer = setTimeout(() => {
+        setBurstOn(true);
+        burst.value = 0;
+        burst.value = withTiming(1, { duration: BURST_MS, easing: Easing.out(Easing.quad) });
+        endTimer = setTimeout(() => setBurstOn(false), BURST_MS + 100);
+      }, BURST_START_DELAY_MS);
     } else if (!complete) {
       cap.value = withTiming(0, { duration: 120 });
+      setBurstOn(false);
     }
     wasComplete.current = complete;
-  }, [complete, pulse, cap]);
+    return () => {
+      if (startTimer) clearTimeout(startTimer);
+      if (endTimer) clearTimeout(endTimer);
+    };
+  }, [complete, pulse, cap, burst]);
 
   const wrapStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: shake.value }, { scale: pulse.value * selectScale.value }],
@@ -160,7 +244,9 @@ function JarBase({
               >
                 {index < hiddenBottom ? (
                   <Text style={styles.question}>?</Text>
-                ) : showFish ? (
+                ) : showFish && index < fish.length - hiddenTop ? (
+                  // Henüz inmemiş (uçan) balığın yeri boş kalır; sprite inince tek tek mount edilir,
+                  // böylece çok balıklı hamlede hepsi aynı karede mount edilip takılma yapmaz.
                   <FishSprite
                     id={id}
                     width={FISH_W}
@@ -175,6 +261,10 @@ function JarBase({
             ))}
           </Animated.View>
         </View>
+        {burstOn &&
+          BURST.slice(0, BURST_COUNT).map((b, i) => (
+            <BurstBubble key={i} burst={burst} x={b.x} size={b.s} delay={b.d} rise={b.r} jarH={height} />
+          ))}
       </Animated.View>
     </Pressable>
   );
@@ -219,6 +309,13 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     backgroundColor: '#80cbc4',
     zIndex: 2,
+  },
+  burstBubble: {
+    position: 'absolute',
+    backgroundColor: 'rgba(255,255,255,0.75)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.9)',
+    zIndex: 3,
   },
   slot: {
     height: BALL_SIZE,

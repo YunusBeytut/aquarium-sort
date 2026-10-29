@@ -1,24 +1,29 @@
-{
+﻿{
   "expo": {
-    "name": "Aquarium Sort",
-    "slug": "aquarium-sort",
+    "name": "Blub Sort",
+    "slug": "blub-sort",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "aquariumsort",
+    "scheme": "blubsort",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "icon": "./assets/images/icon.png"
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+        "backgroundColor": "#022878",
+        "foregroundImage": "./assets/images/adaptive-icon.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.watson098.aquariumsort"
+      "package": "com.blubsort.app",
+      "googleServicesFile": "./google-services.json",
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"
+      ]
     },
     "web": {
       "output": "static",
@@ -29,15 +34,46 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#208AEF",
+          "backgroundColor": "#0b3d5c",
           "image": "./assets/images/splash-icon.png",
-          "imageWidth": 76
+          "imageWidth": 288
         }
-      ]
+      ],
+      "expo-audio",
+      [
+        "react-native-google-mobile-ads",
+        {
+          "androidAppId": "ca-app-pub-4166860490841357~9244078897"
+        }
+      ],
+      [
+        "expo-localization",
+        {
+          "supportedLocales": {
+            "ios": [
+              "en",
+              "tr"
+            ],
+            "android": [
+              "en",
+              "tr"
+            ]
+          }
+        }
+      ],
+      "@react-native-firebase/app",
+      "@react-native-firebase/crashlytics",
+      "@react-native-google-signin/google-signin"
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "89911b59-41dd-48eb-86d1-a2234a45d188"
+      }
     }
   }
 }

@@ -1,1 +1,19 @@
-[]
+[
+  { "id": "bg-50", "kind": "background", "name": "Antik Sütunlar", "unlockLevel": 100, "price": 300 },
+  { "id": "bg-100", "kind": "background", "name": "Batık Gemi", "unlockLevel": 200, "price": 600 },
+  { "id": "bg-150", "kind": "background", "name": "Kayıp Şehir", "unlockLevel": 300, "price": 1000 },
+  { "id": "bg-coral", "kind": "background", "name": "Mercan Bahçesi", "unlockLevel": null, "price": 2500 },
+  { "id": "bg-crystal", "kind": "background", "name": "Kristal Mağara", "unlockLevel": null, "price": 4000 },
+  { "id": "acc-chest", "kind": "accessory", "slot": "left", "name": "Hazine Sandığı", "unlockLevel": null, "price": 2000 },
+  { "id": "acc-clam", "kind": "accessory", "slot": "right", "name": "İncili İstiridye", "unlockLevel": null, "price": 1500 },
+  { "id": "acc-ship", "kind": "accessory", "slot": "left", "name": "Gemi Enkazı", "unlockLevel": null, "price": 3000 },
+  { "id": "acc-anchor", "kind": "accessory", "slot": "right", "name": "Eski Çapa", "unlockLevel": null, "price": 1000 },
+  { "id": "acc-skull", "kind": "accessory", "slot": "right", "name": "Korsan Kafatası", "unlockLevel": null, "price": 2000 },
+  { "id": "bg-forest", "kind": "background", "name": "Orman", "unlockLevel": null, "price": 2500 },
+  { "id": "bg-glacier", "kind": "background", "name": "Buzul", "unlockLevel": null, "price": 2500 },
+  { "id": "aq-pirate", "kind": "aquariumBackground", "name": "Korsan Mezarlığı", "unlockLevel": null, "price": 5000 },
+  { "id": "aq-cute", "kind": "aquariumBackground", "name": "Şirin Resif", "unlockLevel": null, "price": 2500 },
+  { "id": "aq-glacier", "kind": "aquariumBackground", "name": "Buzul Mağarası", "unlockLevel": null, "price": 3000 },
+  {"id": "aq-night", "kind": "aquariumBackground", "name": "Gece", "unlockLevel": null, "price": 3000}
+
+]

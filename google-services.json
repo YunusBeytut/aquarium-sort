@@ -1,0 +1,63 @@
+{
+  "project_info": {
+    "project_number": "746730133159",
+    "project_id": "blub-sort",
+    "storage_bucket": "blub-sort.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:746730133159:android:9189b4d0bcf67666352d82",
+        "android_client_info": {
+          "package_name": "com.blubsort.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "746730133159-85kpdmheg54v8g9ork6dvk8fje00cedl.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.blubsort.app",
+            "certificate_hash": "73af9b5e3b1493433a4018092add55faaa92c365"
+          }
+        },
+        {
+          "client_id": "746730133159-fvlg638no7sru088r8bnlg1jaobr0nud.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.blubsort.app",
+            "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
+          }
+        },
+        {
+          "client_id": "746730133159-srr7eolin5jkee5qe54nr1doamb5cpvn.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.blubsort.app",
+            "certificate_hash": "1ade293323280445123b224a60c1885acb1cdbe8"
+          }
+        },
+        {
+          "client_id": "746730133159-c3t9i3dq5d2enq9bikm2vrm7542i7hgk.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBVJ1f4sDUO-3iW5-prkozYB1Zzukgs6Es"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "746730133159-c3t9i3dq5d2enq9bikm2vrm7542i7hgk.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
